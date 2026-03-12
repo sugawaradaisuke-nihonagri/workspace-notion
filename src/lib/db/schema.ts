@@ -8,7 +8,15 @@ import {
   integer,
   pgEnum,
   primaryKey,
+  customType,
 } from "drizzle-orm/pg-core";
+
+/** Custom type for PostgreSQL bytea columns (binary data) */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 import type { AdapterAccountType } from "next-auth/adapters";
 
 // === Enums ===
@@ -234,6 +242,15 @@ export const comments = pgTable("comments", {
   inlineRef: jsonb("inline_ref"),
   isResolved: boolean("is_resolved").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/** Stores Yjs CRDT binary state per page for persistence across server restarts */
+export const yjsDocuments = pgTable("yjs_documents", {
+  pageId: uuid("page_id")
+    .references(() => pages.id, { onDelete: "cascade" })
+    .primaryKey(),
+  state: bytea("state").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

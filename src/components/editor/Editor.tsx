@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorProvider, type JSONContent } from "@tiptap/react";
+import type { Editor as TiptapEditor } from "@tiptap/core";
 import { trpc } from "@/lib/trpc/client";
 import { useYjsProvider, CURSOR_COLORS } from "@/lib/realtime";
 import { getEditorExtensions } from "./extensions";
@@ -29,6 +30,7 @@ export function Editor({ pageId, user }: EditorProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef<JSONContent | null>(null);
   const initialLoadedRef = useRef(false);
+  const seededRef = useRef(false);
 
   // --- Yjs collaboration ---
   const { ydoc, provider, connected } = useYjsProvider({
@@ -104,9 +106,48 @@ export function Editor({ pageId, user }: EditorProps) {
   // Reset on page change
   useEffect(() => {
     initialLoadedRef.current = false;
+    seededRef.current = false;
     setInitialContent(null);
     setBlockId(null);
   }, [pageId]);
+
+  // --- Seed Y.Doc from blocks when collaborative and doc is empty ---
+  const handleCreate = useCallback(
+    ({ editor }: { editor: TiptapEditor }) => {
+      if (!isCollaborative || seededRef.current) return;
+      seededRef.current = true;
+
+      // Wait for initial sync from WS server
+      const checkAndSeed = () => {
+        // Check if Y.Doc fragment is effectively empty (only has default empty paragraph)
+        const json = editor.getJSON();
+        const isEmpty =
+          !json.content ||
+          json.content.length === 0 ||
+          (json.content.length === 1 &&
+            json.content[0].type === "paragraph" &&
+            (!json.content[0].content || json.content[0].content.length === 0));
+
+        if (isEmpty && initialContent && initialContent !== defaultContent) {
+          // Seed the Y.Doc with existing block content
+          editor.commands.setContent(initialContent);
+        }
+      };
+
+      if (provider) {
+        // If already synced, check immediately
+        if (provider.synced) {
+          checkAndSeed();
+        } else {
+          provider.once("sync", () => {
+            // Small delay to let Yjs state propagate to ProseMirror
+            setTimeout(checkAndSeed, 100);
+          });
+        }
+      }
+    },
+    [isCollaborative, provider, initialContent],
+  );
 
   // --- 自動保存 (non-collab mode fallback + collab periodic save) ---
   const saveContent = useCallback(
@@ -172,6 +213,7 @@ export function Editor({ pageId, user }: EditorProps) {
         key={`${pageId}-${!!provider}`}
         extensions={extensions}
         content={isCollaborative ? undefined : initialContent}
+        onCreate={handleCreate}
         onUpdate={handleUpdate}
         editorContainerProps={{
           className: "editor-container",

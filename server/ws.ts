@@ -4,10 +4,12 @@
  * Run: pnpm ws:dev
  *
  * Each page gets its own Y.Doc keyed by room name "page:{pageId}".
- * Documents are held in memory; persistence (to Neon) will be added later.
+ * Documents are persisted to Neon PostgreSQL (yjs_documents table).
  */
 
+import "dotenv/config";
 import { WebSocketServer, WebSocket } from "ws";
+import { neon } from "@neondatabase/serverless";
 import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
@@ -17,32 +19,140 @@ import * as decoding from "lib0/decoding";
 // --- Constants ---
 
 const PORT = parseInt(process.env.WS_PORT ?? "4444", 10);
+const PERSIST_DEBOUNCE_MS = 2000;
 
 const messageSync = 0;
 const messageAwareness = 1;
+
+// --- Database ---
+
+const sql = neon(process.env.DATABASE_URL!);
+
+/** Extract pageId from room name "page:{uuid}" */
+function pageIdFromRoom(roomName: string): string | null {
+  if (roomName.startsWith("page:")) {
+    return roomName.slice(5);
+  }
+  return null;
+}
+
+/** Load persisted Y.Doc state from DB */
+async function loadDocState(pageId: string): Promise<Uint8Array | null> {
+  const rows = await sql`
+    SELECT state FROM yjs_documents WHERE page_id = ${pageId}
+  `;
+  if (rows.length > 0 && rows[0].state) {
+    // Neon returns bytea as a Buffer-like hex string; convert to Uint8Array
+    const buf = rows[0].state;
+    if (buf instanceof Buffer || buf instanceof Uint8Array) {
+      return new Uint8Array(buf);
+    }
+    // If it's a hex string like "\\x..."
+    if (typeof buf === "string") {
+      const hex = buf.startsWith("\\x") ? buf.slice(2) : buf;
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+      }
+      return bytes;
+    }
+  }
+  return null;
+}
+
+/** Save Y.Doc state to DB (upsert) */
+async function saveDocState(pageId: string, state: Uint8Array): Promise<void> {
+  const buf = Buffer.from(state);
+  await sql`
+    INSERT INTO yjs_documents (page_id, state, updated_at)
+    VALUES (${pageId}, ${buf}, NOW())
+    ON CONFLICT (page_id)
+    DO UPDATE SET state = ${buf}, updated_at = NOW()
+  `;
+}
 
 // --- Document store ---
 
 interface YRoom {
   doc: Y.Doc;
   awareness: awarenessProtocol.Awareness;
-  conns: Map<WebSocket, Set<number>>; // ws → tracked awareness client IDs
+  conns: Map<WebSocket, Set<number>>;
+  persistTimer: ReturnType<typeof setTimeout> | null;
+  pageId: string | null;
 }
 
 const rooms = new Map<string, YRoom>();
 
-function getOrCreateRoom(name: string): YRoom {
+/** Schedule a debounced persist for this room */
+function schedulePersist(room: YRoom): void {
+  if (!room.pageId) return;
+  if (room.persistTimer) {
+    clearTimeout(room.persistTimer);
+  }
+  room.persistTimer = setTimeout(async () => {
+    room.persistTimer = null;
+    if (!room.pageId) return;
+    try {
+      const state = Y.encodeStateAsUpdate(room.doc);
+      await saveDocState(room.pageId, state);
+    } catch (err) {
+      console.error(`[persist] Failed to save ${room.pageId}:`, err);
+    }
+  }, PERSIST_DEBOUNCE_MS);
+}
+
+/** Flush pending persist immediately (for shutdown) */
+async function flushPersist(room: YRoom): Promise<void> {
+  if (room.persistTimer) {
+    clearTimeout(room.persistTimer);
+    room.persistTimer = null;
+  }
+  if (!room.pageId) return;
+  try {
+    const state = Y.encodeStateAsUpdate(room.doc);
+    await saveDocState(room.pageId, state);
+  } catch (err) {
+    console.error(`[persist] Flush failed for ${room.pageId}:`, err);
+  }
+}
+
+async function getOrCreateRoom(name: string): Promise<YRoom> {
   const existing = rooms.get(name);
   if (existing) return existing;
 
   const doc = new Y.Doc();
   const awareness = new awarenessProtocol.Awareness(doc);
-
-  // Remove awareness state when client disconnects
   awareness.setLocalState(null);
 
-  const room: YRoom = { doc, awareness, conns: new Map() };
+  const pageId = pageIdFromRoom(name);
+  const room: YRoom = {
+    doc,
+    awareness,
+    conns: new Map(),
+    persistTimer: null,
+    pageId,
+  };
   rooms.set(name, room);
+
+  // Load persisted state from DB
+  if (pageId) {
+    try {
+      const state = await loadDocState(pageId);
+      if (state && state.length > 0) {
+        Y.applyUpdate(doc, state);
+        console.log(
+          `[persist] Loaded state for ${pageId} (${state.length} bytes)`,
+        );
+      }
+    } catch (err) {
+      console.error(`[persist] Failed to load ${pageId}:`, err);
+    }
+  }
+
+  // Persist on doc updates (debounced)
+  doc.on("update", () => {
+    schedulePersist(room);
+  });
 
   awareness.on(
     "update",
@@ -81,35 +191,43 @@ function broadcastToRoom(
   });
 }
 
-// Cleanup empty rooms periodically
-setInterval(() => {
-  rooms.forEach((room, name) => {
+// Cleanup empty rooms — flush to DB before destroying
+setInterval(async () => {
+  for (const [name, room] of rooms) {
     if (room.conns.size === 0) {
+      await flushPersist(room);
       room.awareness.destroy();
       room.doc.destroy();
       rooms.delete(name);
+      console.log(`[room] Cleaned up ${name}`);
     }
-  });
+  }
 }, 30_000);
 
 // --- WebSocket server ---
 
 const wss = new WebSocketServer({ port: PORT });
 
-wss.on("connection", (ws, req) => {
-  // Room name from URL path: /page:{pageId}
+wss.on("connection", async (ws, req) => {
   const roomName = req.url?.slice(1) ?? "default";
-  const room = getOrCreateRoom(roomName);
+  const room = await getOrCreateRoom(roomName);
 
   const trackedIds = new Set<number>();
   room.conns.set(ws, trackedIds);
 
-  // --- Send initial sync step 1 ---
+  // --- Send initial sync step 1 + full doc state ---
   {
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, messageSync);
-    syncProtocol.writeSyncStep1(encoder, room.doc);
-    ws.send(encoding.toUint8Array(encoder));
+    // Step 1: request client's state vector
+    const enc1 = encoding.createEncoder();
+    encoding.writeVarUint(enc1, messageSync);
+    syncProtocol.writeSyncStep1(enc1, room.doc);
+    ws.send(encoding.toUint8Array(enc1));
+
+    // Step 2: send full doc state immediately so client can mark as synced
+    const enc2 = encoding.createEncoder();
+    encoding.writeVarUint(enc2, messageSync);
+    syncProtocol.writeSyncStep2(enc2, room.doc);
+    ws.send(encoding.toUint8Array(enc2));
   }
 
   // --- Send current awareness states ---
@@ -139,14 +257,17 @@ wss.on("connection", (ws, req) => {
       case messageSync: {
         const encoder = encoding.createEncoder();
         encoding.writeVarUint(encoder, messageSync);
-        syncProtocol.readSyncMessage(decoder, encoder, room.doc, ws);
-        const reply = encoding.toUint8Array(encoder);
-        // Only send reply if there's content beyond the message type header
-        if (encoding.length(encoder) > 1) {
-          ws.send(reply);
+        const syncMsgType = syncProtocol.readSyncMessage(
+          decoder,
+          encoder,
+          room.doc,
+          ws,
+        );
+        // Only reply to sync step 1 (server sends sync step 2 back)
+        // Sync step 2 and updates don't need a reply
+        if (syncMsgType === 0) {
+          ws.send(encoding.toUint8Array(encoder));
         }
-        // Broadcast doc updates to other clients
-        // (y-protocols handles this via doc 'update' event, but we also relay sync messages)
         break;
       }
       case messageAwareness: {
@@ -159,7 +280,7 @@ wss.on("connection", (ws, req) => {
 
   // Broadcast doc updates to all connected clients
   const onDocUpdate = (update: Uint8Array, origin: unknown) => {
-    if (origin === ws) return; // Don't echo back to sender
+    if (origin === ws) return;
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, messageSync);
     syncProtocol.writeUpdate(encoder, update);
@@ -172,7 +293,6 @@ wss.on("connection", (ws, req) => {
     room.doc.off("update", onDocUpdate);
     room.conns.delete(ws);
 
-    // Remove awareness state for this client
     awarenessProtocol.removeAwarenessStates(
       room.awareness,
       Array.from(trackedIds),
@@ -180,5 +300,21 @@ wss.on("connection", (ws, req) => {
     );
   });
 });
+
+// --- Graceful shutdown ---
+async function shutdown() {
+  console.log("[y-websocket] Shutting down, flushing all rooms...");
+  const flushes: Promise<void>[] = [];
+  for (const room of rooms.values()) {
+    flushes.push(flushPersist(room));
+  }
+  await Promise.allSettled(flushes);
+  wss.close();
+  console.log("[y-websocket] Shutdown complete");
+  process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 console.log(`[y-websocket] listening on ws://localhost:${PORT}`);
