@@ -1,26 +1,171 @@
 @import "tailwindcss";
 
+/* === ダークテーマ (デフォルト) === */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Background layers */
+  --bg-primary: #191919;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #252525;
+  --bg-elevated: #2a2a2a;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.08);
+
+  /* Border */
+  --border-default: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --text-primary: rgba(255, 255, 255, 0.88);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --text-disabled: rgba(255, 255, 255, 0.2);
+
+  /* Accent */
+  --accent-blue: #2383e2;
+  --accent-blue-bg: rgba(35, 131, 226, 0.15);
+
+  /* Status (DB) */
+  --status-todo-bg: #e3e2e0;
+  --status-todo-fg: #373530;
+  --status-progress-bg: #d3e5ef;
+  --status-progress-fg: #24547e;
+  --status-review-bg: #fdecc8;
+  --status-review-fg: #9a6700;
+  --status-done-bg: #dbeddb;
+  --status-done-fg: #1e6b2c;
+  --status-cancelled-bg: #ffe2dd;
+  --status-cancelled-fg: #93370d;
+
+  /* Priority */
+  --priority-high-bg: #ffe2dd;
+  --priority-high-fg: #93370d;
+  --priority-mid-bg: #fdecc8;
+  --priority-mid-fg: #9a6700;
+  --priority-low-bg: #e3e2e0;
+  --priority-low-fg: #373530;
+
+  /* Block colors (10色) */
+  --block-red: #ffe2dd;
+  --block-red-text: #93370d;
+  --block-orange: #fdecc8;
+  --block-orange-text: #9a6700;
+  --block-yellow: #fbf3db;
+  --block-yellow-text: #64531f;
+  --block-green: #dbeddb;
+  --block-green-text: #1e6b2c;
+  --block-blue: #d3e5ef;
+  --block-blue-text: #24547e;
+  --block-purple: #e8deee;
+  --block-purple-text: #6940a5;
+  --block-pink: #f5e0e9;
+  --block-pink-text: #93370d;
+  --block-brown: #e9e5e3;
+  --block-brown-text: #64473a;
+  --block-gray: #e3e2e0;
+  --block-gray-text: #373530;
+  --block-default: rgba(255, 255, 255, 0.03);
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 24px 80px rgba(0, 0, 0, 0.5);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: "Noto Sans JP", "SF Pro Display", -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "JetBrains Mono", "Consolas", monospace;
+  --font-serif: "Noto Serif JP", "Georgia", serif;
+
+  /* Animation */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.25s ease;
 }
 
+/* === ライトテーマ === */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #fbfbfa;
+  --bg-tertiary: #f7f6f3;
+  --bg-elevated: #f1f1ef;
+  --bg-hover: rgba(0, 0, 0, 0.03);
+  --bg-active: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.06);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --text-primary: #37352f;
+  --text-secondary: #787774;
+  --text-tertiary: #b4b4b0;
+  --text-disabled: #d3d3d0;
+}
+
+/* === Tailwind v4 Theme Mapping === */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Background */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Border */
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+
+  /* Accent */
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-blue-bg: var(--accent-blue-bg);
+
+  /* Block colors */
+  --color-block-red: var(--block-red);
+  --color-block-orange: var(--block-orange);
+  --color-block-yellow: var(--block-yellow);
+  --color-block-green: var(--block-green);
+  --color-block-blue: var(--block-blue);
+  --color-block-purple: var(--block-purple);
+  --color-block-pink: var(--block-pink);
+  --color-block-brown: var(--block-brown);
+  --color-block-gray: var(--block-gray);
+  --color-block-default: var(--block-default);
+
+  /* Radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  /* Font families */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+/* === Sidebar page tree items === */
+.group\/item:hover {
+  background: var(--bg-hover);
+}
+
+.group\/item[data-active] {
+  background: var(--bg-active);
 }
