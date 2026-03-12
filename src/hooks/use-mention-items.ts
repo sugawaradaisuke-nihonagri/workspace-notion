@@ -23,9 +23,9 @@ export function useMentionItems(workspaceId: string | undefined) {
   const allItems = useMemo<MentionItem[]>(() => {
     const userItems: MentionItem[] = (members ?? []).map((m) => ({
       id: m.userId,
-      label: m.name,
+      label: m.userName,
       type: "user" as const,
-      image: m.image,
+      image: m.userImage,
     }));
 
     const pageItems: MentionItem[] = (pageList ?? [])

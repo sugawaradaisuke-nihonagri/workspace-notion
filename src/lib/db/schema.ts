@@ -251,6 +251,19 @@ export const comments = pgTable("comments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+/** Page-level sharing — overrides workspace role for specific pages */
+export const pageShares = pgTable("page_shares", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pageId: uuid("page_id")
+    .references(() => pages.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  role: roleEnum("role").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 /** Stores Yjs CRDT binary state per page for persistence across server restarts */
 export const yjsDocuments = pgTable("yjs_documents", {
   pageId: uuid("page_id")

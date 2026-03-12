@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
+import { useShareStore } from "@/stores/share-store";
 
 interface TopbarProps {
   workspaceId: string;
@@ -25,6 +26,7 @@ export function Topbar({
   commentCount,
 }: TopbarProps) {
   const router = useRouter();
+  const openShare = useShareStore((s) => s.open);
   const { data: allPages } = trpc.pages.list.useQuery({ workspaceId });
   const { data: page } = trpc.pages.get.useQuery({ pageId });
 
@@ -118,7 +120,10 @@ export function Topbar({
         )}
 
         {/* Share button */}
-        <button className="flex h-[28px] items-center gap-1.5 rounded-[6px] px-2 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]">
+        <button
+          onClick={() => openShare(pageId, workspaceId)}
+          className="flex h-[28px] items-center gap-1.5 rounded-[6px] px-2 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        >
           <Share2 size={13} />
           <span>共有</span>
         </button>

@@ -118,8 +118,9 @@ export const workspaceRouter = router({
         .select({
           userId: workspaceMembers.userId,
           role: workspaceMembers.role,
-          name: users.name,
-          image: users.image,
+          userName: users.name,
+          userImage: users.image,
+          userEmail: users.email,
         })
         .from(workspaceMembers)
         .innerJoin(users, eq(workspaceMembers.userId, users.id))

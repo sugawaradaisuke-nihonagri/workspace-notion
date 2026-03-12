@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { pages, workspaceMembers } from "@/lib/db/schema";
-import { can, type Role } from "@/lib/permissions";
+import { pages, workspaceMembers, pageShares } from "@/lib/db/schema";
+import { hasRole, can, type Role } from "@/lib/permissions";
 import type { Database } from "@/lib/db";
 
 interface AccessResult {
@@ -10,8 +10,24 @@ interface AccessResult {
 }
 
 /**
+ * Resolve the effective role for a user on a page.
+ * Priority: page_shares > workspace_members (takes the higher of the two).
+ */
+function resolveEffectiveRole(
+  workspaceRole: Role | null,
+  pageRole: Role | null,
+): Role | null {
+  if (!workspaceRole && !pageRole) return null;
+  if (!workspaceRole) return pageRole;
+  if (!pageRole) return workspaceRole;
+  // Return the higher of the two roles
+  return hasRole(pageRole, workspaceRole) ? pageRole : workspaceRole;
+}
+
+/**
  * Verify that a user has access to a page's workspace and return their role.
- * Throws TRPCError if page not found or user is not a member.
+ * Checks both workspace membership and page-level shares, using the higher role.
+ * Throws TRPCError if page not found or user has no access.
  */
 export async function verifyPageAccess(
   db: Database,
@@ -28,6 +44,7 @@ export async function verifyPageAccess(
     throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
   }
 
+  // Check workspace membership
   const member = await db
     .select({ role: workspaceMembers.role })
     .from(workspaceMembers)
@@ -39,11 +56,23 @@ export async function verifyPageAccess(
     )
     .then((rows: { role: string }[]) => rows[0]);
 
-  if (!member) {
+  // Check page-level share
+  const share = await db
+    .select({ role: pageShares.role })
+    .from(pageShares)
+    .where(and(eq(pageShares.pageId, pageId), eq(pageShares.userId, userId)))
+    .then((rows: { role: string }[]) => rows[0]);
+
+  const effectiveRole = resolveEffectiveRole(
+    member ? (member.role as Role) : null,
+    share ? (share.role as Role) : null,
+  );
+
+  if (!effectiveRole) {
     throw new TRPCError({ code: "FORBIDDEN" });
   }
 
-  return { workspaceId: page.workspaceId, role: member.role as Role };
+  return { workspaceId: page.workspaceId, role: effectiveRole };
 }
 
 /**
