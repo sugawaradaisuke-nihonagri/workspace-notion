@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# uploaded files (dev only, production uses S3/R2)
+/public/uploads
+
 # vercel
 .vercel
 

@@ -17,6 +17,8 @@ import type { WebsocketProvider } from "y-websocket";
 import { CalloutExtension } from "./callout-extension";
 import { ToggleExtension } from "./toggle-extension";
 import { DividerExtension } from "./divider-extension";
+import { ImageBlockExtension } from "./image-extension";
+import { MediaBlockExtension } from "./media-block-extension";
 import { SlashCommandExtension } from "./slash-command";
 import { BlockColorExtension } from "./block-color";
 import { KeyboardShortcutsExtension } from "./keyboard-shortcuts";
@@ -88,6 +90,8 @@ export function getEditorExtensions(collab?: CollabOptions) {
     CalloutExtension,
     ToggleExtension,
     DividerExtension,
+    ImageBlockExtension,
+    MediaBlockExtension,
     SlashCommandExtension,
     BlockColorExtension,
     KeyboardShortcutsExtension,
@@ -111,6 +115,8 @@ export {
   CalloutExtension,
   ToggleExtension,
   DividerExtension,
+  ImageBlockExtension,
+  MediaBlockExtension,
   SlashCommandExtension,
   BlockColorExtension,
   KeyboardShortcutsExtension,

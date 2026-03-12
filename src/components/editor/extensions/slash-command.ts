@@ -162,8 +162,55 @@ export const SLASH_ITEMS: SlashCommandItem[] = [
     category: "media",
     aliases: ["image", "img", "picture", "photo"],
     command: (editor, range) => {
-      // TODO: 画像アップロードモーダルを開く（Phase 4）
-      editor.chain().focus().deleteRange(range).run();
+      editor.chain().focus().deleteRange(range).setImageBlock().run();
+    },
+  },
+  {
+    id: "video",
+    label: "動画",
+    description: "動画を埋め込み",
+    icon: "🎬",
+    category: "media",
+    aliases: ["video", "movie", "film"],
+    command: (editor, range) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setMediaBlock({ mediaType: "video" })
+        .run();
+    },
+  },
+  {
+    id: "audio",
+    label: "音声",
+    description: "音声ファイルを埋め込み",
+    icon: "🎵",
+    category: "media",
+    aliases: ["audio", "music", "sound"],
+    command: (editor, range) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setMediaBlock({ mediaType: "audio" })
+        .run();
+    },
+  },
+  {
+    id: "file",
+    label: "ファイル",
+    description: "ファイルを添付",
+    icon: "📎",
+    category: "media",
+    aliases: ["file", "attachment", "upload"],
+    command: (editor, range) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setMediaBlock({ mediaType: "file" })
+        .run();
     },
   },
   {
@@ -172,10 +219,30 @@ export const SLASH_ITEMS: SlashCommandItem[] = [
     description: "URLプレビューを埋め込み",
     icon: "🔗",
     category: "media",
-    aliases: ["bookmark", "link", "url", "embed"],
+    aliases: ["bookmark", "link", "url"],
     command: (editor, range) => {
-      // TODO: ブックマーク入力（Phase 4）
-      editor.chain().focus().deleteRange(range).run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setMediaBlock({ mediaType: "bookmark" })
+        .run();
+    },
+  },
+  {
+    id: "embed",
+    label: "埋め込み",
+    description: "YouTube, Figma など",
+    icon: "📐",
+    category: "media",
+    aliases: ["embed", "iframe", "youtube", "figma"],
+    command: (editor, range) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setMediaBlock({ mediaType: "embed" })
+        .run();
     },
   },
   // --- 高度 ---
