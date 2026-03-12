@@ -9,6 +9,7 @@ import { useMentionItems } from "@/hooks/use-mention-items";
 import { getEditorExtensions } from "./extensions";
 import { BlockDragHandle } from "./BlockDragHandle";
 import { CollabPresenceBar } from "./CollabPresenceBar";
+import { InlineCommentBridge } from "./InlineCommentBridge";
 
 interface EditorProps {
   pageId: string;
@@ -228,6 +229,7 @@ export function Editor({ pageId, workspaceId, user }: EditorProps) {
         immediatelyRender={false}
       >
         <BlockDragHandle />
+        <InlineCommentBridge pageId={pageId} enabled={!!user} />
       </EditorProvider>
     </div>
   );

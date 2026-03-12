@@ -196,6 +196,20 @@ function CommentBubble({
   );
 }
 
+function InlineRefBadge({ inlineRef }: { inlineRef: unknown }) {
+  const ref = inlineRef as { text?: string } | null;
+  if (!ref?.text) return null;
+
+  return (
+    <div className="mb-2 flex items-start gap-1.5 rounded-[4px] border-l-2 border-[var(--accent-yellow, #f5a623)] bg-[var(--accent-yellow, #f5a623)]/10 px-2 py-1">
+      <span className="mt-px text-[10px] text-[var(--text-tertiary)]">💬</span>
+      <span className="line-clamp-2 text-[12px] italic text-[var(--text-secondary)]">
+        &ldquo;{ref.text}&rdquo;
+      </span>
+    </div>
+  );
+}
+
 export function CommentThread({
   comment,
   currentUserId,
@@ -225,6 +239,9 @@ export function CommentThread({
         comment.isResolved ? "opacity-50" : ""
       }`}
     >
+      {/* Inline reference badge */}
+      <InlineRefBadge inlineRef={comment.inlineRef} />
+
       {/* Top-level comment */}
       <CommentBubble comment={comment} currentUserId={currentUserId} />
 

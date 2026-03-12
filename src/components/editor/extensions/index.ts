@@ -27,6 +27,7 @@ import {
   createMentionExtension,
   type MentionItem,
 } from "./mention-extension";
+import { InlineCommentExtension } from "./inline-comment-extension";
 
 const lowlight = createLowlight(common);
 
@@ -108,6 +109,9 @@ export function getEditorExtensions(
     BlockColorExtension,
     KeyboardShortcutsExtension,
 
+    // --- Inline comment decorations ---
+    InlineCommentExtension,
+
     // --- @Mention extension ---
     mention?.getMentionItems
       ? createMentionExtension(mention.getMentionItems)
@@ -139,4 +143,5 @@ export {
   KeyboardShortcutsExtension,
   MentionExtension,
   createMentionExtension,
+  InlineCommentExtension,
 };

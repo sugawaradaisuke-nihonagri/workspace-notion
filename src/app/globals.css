@@ -306,6 +306,18 @@ body {
   background: var(--accent-blue-muted, rgba(45, 136, 255, 0.25));
 }
 
+/* --- Inline comment highlight (ProseMirror Decoration) --- */
+.inline-comment-highlight {
+  background: rgba(255, 212, 0, 0.2);
+  border-bottom: 2px solid rgba(255, 212, 0, 0.6);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inline-comment-highlight:hover {
+  background: rgba(255, 212, 0, 0.35);
+}
+
 /* --- Blockquote --- */
 .tiptap blockquote {
   border-left: 3px solid var(--border-strong);
