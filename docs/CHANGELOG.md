@@ -1,6 +1,42 @@
 # 開発履歴
 
-## [0.5.0] - 2026-03-13 — Phase 4: メディア + 拡張機能 (進行中)
+## [0.6.0] - 2026-03-13 — Phase 4 完了: メディア + 拡張ビュー + DB リレーション
+
+### 🔗 ページ共有設定 (`39ed3f8`)
+- `page_shares` テーブル追加: userId + pageId + role (5段階)
+- `pageSharesRouter`: list, create, update, delete — ページ単位のアクセス制御
+- `resolveEffectiveRole()`: ワークスペースロールとページ共有ロールの高い方を適用
+- `ShareModal.tsx`: メンバー検索、ロール選択、共有CRUD
+- `useShareStore` (Zustand): モーダルのグローバル状態
+- `Topbar.tsx`: 共有ボタンからShareModalを開く
+- `workspace.members` クエリ: フィールド名を `userName`/`userImage`/`userEmail` に統一
+
+### 📁 FilesCell — S3 アップロード連携 (`7309209`)
+- `FileItem` 型追加: `{ url, name, size, mimeType }` (JSONB 格納)
+- `FilesCell.tsx` 書き換え: S3/ローカルアップロード、画像サムネイル、MIMEアイコン、サイズ表示
+- 複数ファイル対応、削除ボタン、追加ボタン、ローディングスピナー
+
+### 🔗 Relation / Rollup / Formula (`dcb2f00`)
+- `RelationCell.tsx`: ターゲットDBの行選択ドロップダウン、検索フィルタ、マルチセレクト
+- `RollupCell.tsx`: 10種集計 (count/sum/average/min/max/percent_empty 等)
+- `FormulaCell.tsx`: 再帰降下パーサー (tokenize → parseExpression → … → parseAtom)
+  - `prop()`, `concat()`, `if()`, `length()`, `round()`, `floor()`, `ceil()`, `abs()`, `now()`, `empty()`, `toNumber()`
+  - 算術演算子: `+`, `-`, `*`, `/`, `%` / 比較: `==`, `!=`, `>`, `<`, `>=`, `<=`
+- `TableView.tsx`: cellMap + rowValues + propertyNameMap を PropertyEditor に注入
+
+### 📊 タイムラインビュー + チャートビュー (`714166d`)
+- **TimelineView (ガントチャート)**: 日/週/月スケール切替、左パネル行名、右パネルスクロール可能グリッド
+  - `DateRange` 抽出、`getBarStyle()` 位置計算、今日マーカー、カラーバー
+  - ナビゲーション: 前/次ボタン、「今日」ボタン
+- **ChartView (ゼロ依存チャート)**: 棒グラフ (CSS)、円グラフ (SVG path)、折れ線 (SVG)
+  - グループ化: select/status/multi_select/checkbox
+  - 集計: カウント or 数値プロパティ合計
+  - 凡例 (pie)、グリッド線 (line)
+- **DatabaseView.tsx**: 全6レイアウト (table/board/calendar/gallery/timeline/chart) を switch で切替
+
+---
+
+## [0.5.0] - 2026-03-13 — Phase 4: メディア + 拡張機能 (前半)
 
 ### 💬 インラインコメント (未コミット)
 - `InlineCommentExtension`: ProseMirror Plugin + Decoration でテキスト範囲ハイライト

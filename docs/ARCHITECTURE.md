@@ -31,7 +31,8 @@
               │  │  │  ├── dbProperties router       ││
               │  │  │  ├── dbRows router             ││
               │  │  │  ├── dbViews router            ││
-              │  │  │  └── comments router           ││
+              │  │  │  ├── comments router           ││
+              │  │  │  └── pageShares router        ││
               │  │  └──────────┬────────────────────┘│
               │  │             │                      │
               │  │  ┌──────────┴────┐  ┌───────────┐ │
@@ -143,16 +144,17 @@ src/
 │   │   ├── blocks/               # カスタム NodeView (ImageView, MediaBlockView)
 │   │   └── menus/                # メニュー UI (SlashMenu, MentionMenu)
 │   ├── database/                 # データベースビュー
-│   │   ├── DatabaseView.tsx      # メイン: ビュータブ + コントロール + ビュー
-│   │   ├── properties/           # セルエディタ (13タイプ)
-│   │   ├── views/                # テーブル/ボード/カレンダー/ギャラリー
+│   │   ├── DatabaseView.tsx      # メイン: ビュータブ + コントロール + 6ビュー切替
+│   │   ├── properties/           # セルエディタ (16タイプ: Relation/Rollup/Formula 含む)
+│   │   ├── views/                # テーブル/ボード/カレンダー/ギャラリー/タイムライン/チャート
 │   │   └── controls/             # フィルタ/ソート/グループ
 │   ├── comments/                 # コメントシステム
 │   │   ├── CommentSidebar.tsx    # 右サイドバー (320px)
 │   │   └── CommentThread.tsx     # スレッド + 返信 + 解決
 │   ├── shared/                   # 共有コンポーネント
 │   │   ├── search-modal.tsx      # ⌘K 検索モーダル
-│   │   └── Topbar.tsx            # パンくず + コメントボタン
+│   │   ├── ShareModal.tsx        # ページ共有設定モーダル
+│   │   └── Topbar.tsx            # パンくず + コメント + 共有ボタン
 │   └── ui/                       # 汎用 UI
 ├── lib/
 │   ├── storage.ts               # ファイルストレージ抽象化 (ローカル / S3)
@@ -175,10 +177,12 @@ src/
 │           ├── pages.ts
 │           ├── blocks.ts
 │           ├── comments.ts      # コメント CRUD + スレッド + 解決
+│           ├── page-shares.ts   # ページ共有 CRUD + resolveEffectiveRole
 │           ├── database-properties.ts
 │           ├── database-rows.ts
 │           └── database-views.ts
 ├── stores/                       # Zustand ストア
+│   └── share-store.ts           # ShareModal 状態 (Zustand)
 ├── hooks/                        # カスタム Hooks
 │   ├── use-mention-items.ts     # @メンション候補データ
 │   └── use-inline-comments.ts   # インラインコメント → Decoration 同期
@@ -191,7 +195,7 @@ server/
 
 ## DB 設計
 
-### テーブル一覧 (13テーブル)
+### テーブル一覧 (14テーブル)
 
 | テーブル | 説明 |
 |---------|------|
@@ -207,6 +211,7 @@ server/
 | `database_views` | DB ビュー設定 (7レイアウト) |
 | `comments` | コメント + スレッド + インラインコメント |
 | `yjs_documents` | Yjs CRDT バイナリ状態 (bytea) |
+| `page_shares` | ページ単位の共有設定 (userId + pageId + role) |
 | `page_versions` | ページバージョン履歴 |
 
 ### ロールEnum (5段階)
@@ -315,6 +320,7 @@ Client → CommentSidebar → Enter
 - **認可**: 5段階ロールベースアクセス制御 (verify-access.ts)
   - `requirePageRole`: ページ操作の最小ロール検証
   - `requireDatabaseRole`: データベース操作の最小ロール + type=database 検証
+  - `resolveEffectiveRole`: workspace_members と page_shares の高い方を適用
 - **入力検証**: Zod で全 tRPC エンドポイントにバリデーション
 - **XSS**: Tiptap サニタイズ (DOMPurify 追加予定)
 - **CSRF**: Auth.js ビルトイン保護

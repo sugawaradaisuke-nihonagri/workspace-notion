@@ -258,3 +258,48 @@
 **理由**: `EditorProvider` の親コンポーネントからエディタインスタンスにアクセスできない。子コンポーネントの `InlineCommentBridge` が `useCurrentEditor()` で取得し、inline comment の Decoration 同期とポップオーバーを管理
 **代替案**: `useEditor` + props drilling、ref による外部アクセス
 **トレードオフ**: 子コンポーネントが増えるが、関心の分離が明確。Editor.tsx の肥大化を防止
+
+---
+
+## ページ単位共有: resolveEffectiveRole パターン
+
+**決定日**: 2026-03-13
+**理由**: `workspace_members.role` と `page_shares.role` のうち高い方を有効ロールとする。これにより、ワークスペースでは viewer でも特定ページで editor 権限を付与できる。Notion と同様のページ単位アクセス制御
+**代替案**: page_shares のみを優先、ACL テーブルで完全にワークスペースロールを上書き
+**トレードオフ**: ワークスペースロールを下回る制限はできない（ページレベルで viewer に降格不可）。しかし、これは一般的なワークスペースツールの期待動作
+
+---
+
+## FormulaCell: 再帰降下パーサー (ゼロ依存)
+
+**決定日**: 2026-03-13
+**理由**: 数式セルの評価にライブラリを使わず、`tokenize → parseExpression → … → parseAtom` の再帰降下パーサーを自前実装。`prop("Name")` でセル値参照、`if()`, `concat()`, `round()` 等の関数、算術/比較演算子をサポート
+**代替案**: mathjs, expr-eval, Function コンストラクタ (eval)
+**トレードオフ**: 自前実装のため機能追加時にパーサーの拡張が必要。ただし eval ベースのセキュリティリスクを回避し、バンドルサイズも最小
+
+---
+
+## チャートビュー: ゼロ依存 CSS/SVG チャート
+
+**決定日**: 2026-03-13
+**理由**: 棒グラフは CSS の height で、円グラフは SVG path で、折れ線は SVG polyline で描画。Chart.js / Recharts 等のライブラリ不要
+**代替案**: Chart.js, Recharts, D3.js, Nivo
+**トレードオフ**: アニメーション、ツールチップ、レスポンシブ対応が限定的。ただしバンドルサイズ 0 で、基本的な可視化には十分
+
+---
+
+## タイムラインビュー: CSS Grid + 手動位置計算
+
+**決定日**: 2026-03-13
+**理由**: ガントチャートライブラリ（dhtmlx, Bryntum）は高額/重量。日/週/月スケールの位置計算を `diffDays()` / `getBarStyle()` で自前実装
+**代替案**: dhtmlx-gantt, react-gantt-timeline, 汎用タイムラインライブラリ
+**トレードオフ**: D&D でのバー伸縮・依存関係線は未実装。基本的なガントチャート表示として必要十分
+
+---
+
+## FileItem 型: JSONB メタデータ保存
+
+**決定日**: 2026-03-13
+**理由**: ファイルセルの値を `string[]` (URL のみ) から `FileItem[]` (`{ url, name, size, mimeType }`) に変更。JSONB カラムにメタデータを直接保存し、別テーブルでの管理不要
+**代替案**: files テーブルを別途作成して正規化、URL パスからサーバーサイドでメタデータ取得
+**トレードオフ**: JSONB 内のデータは SQL でクエリしにくい。ただしファイルメタデータの検索要件は現時点でなし

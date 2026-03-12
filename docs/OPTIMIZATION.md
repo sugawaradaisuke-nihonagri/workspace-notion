@@ -242,3 +242,45 @@
 **効果**: 未解決コメントのみを Decoration 対象とし、不要な DOM 操作を回避
 
 **関連ファイル**: `src/components/editor/extensions/inline-comment-extension.ts`
+
+---
+
+### 🚀 チャートビュー: ゼロ依存 CSS/SVG レンダリング
+
+**実施日**: 2026-03-13
+
+**Before**: (新規実装) チャートライブラリ (Chart.js ~200KB, Recharts ~150KB) の検討
+
+**After**: 棒グラフは CSS `height` プロパティ、円グラフは SVG `<path>` の arc 計算、折れ線は SVG `<path>` + `<circle>` で描画。外部ライブラリゼロ
+
+**効果**: バンドルサイズ追加 0KB。3種チャートの表示が即座に可能
+
+**関連ファイル**: `src/components/database/views/ChartView.tsx`
+
+---
+
+### 🚀 Formula パーサー: ゼロ依存再帰降下
+
+**実施日**: 2026-03-13
+
+**Before**: (新規実装) mathjs (~500KB) や expr-eval (~30KB) の検討
+
+**After**: 自前の tokenizer + recursive descent parser。`prop()` でセル値参照、11種組み込み関数、算術/比較演算子。~200行
+
+**効果**: 外部ライブラリ不要でバンドルサイズ追加なし。eval ベースのセキュリティリスクも回避
+
+**関連ファイル**: `src/components/database/properties/FormulaCell.tsx`
+
+---
+
+### 🚀 TableView: cellMap + rowValues の一括構築
+
+**実施日**: 2026-03-13
+
+**Before**: PropertyEditor 内で各セルが個別に cellMap を参照するパターン
+
+**After**: TableView の行レンダリング IIFE 内で1行分の `rowValues` (propertyId → value) を一括構築。FormulaCell / RollupCell に `cellMap`, `rowValues`, `propertyNameMap` を注入
+
+**効果**: Formula/Rollup の `prop("Name")` 参照が O(1) で解決。セルごとのマップ探索を排除
+
+**関連ファイル**: `src/components/database/views/TableView.tsx`, `PropertyEditor.tsx`

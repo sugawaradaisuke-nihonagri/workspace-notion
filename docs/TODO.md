@@ -30,7 +30,7 @@
 
 ---
 
-## Phase 4: メディア + 拡張ビュー 🔄 進行中
+## Phase 4: メディア + 拡張ビュー + DB リレーション ✅ 完了
 
 | タスク | 優先度 | 状態 | 説明 |
 |--------|--------|------|------|
@@ -41,11 +41,11 @@
 | Embed ブロック (iframe) | 🟢 LOW | ✅ | YouTube/Vimeo/Figma/CodePen 自動変換 |
 | @メンション (ユーザー/ページリンク) | 🟡 MEDIUM | ✅ | Suggestion API + MentionMenu |
 | インラインコメント (テキスト選択 → コメント) | 🟡 MEDIUM | ✅ | ProseMirror Decoration ハイライト |
-| FilesCell: S3 アップロード連携 | 🟡 MEDIUM | 🔲 | データベースのファイルカラム |
-| ページ共有設定 (個別権限) | 🟡 MEDIUM | 🔲 | ページ単位のアクセス制御 |
-| Relation / Rollup / Formula | 🟡 MEDIUM | 🔲 | DB 間のリレーション |
-| タイムラインビュー | 🟢 LOW | 🔲 | date プロパティのガントチャート |
-| チャートビュー | 🟢 LOW | 🔲 | 集計データの可視化 |
+| FilesCell: S3 アップロード連携 | 🟡 MEDIUM | ✅ | FileItem 型、画像サムネイル、MIME アイコン |
+| ページ共有設定 (個別権限) | 🟡 MEDIUM | ✅ | page_shares テーブル + ShareModal + resolveEffectiveRole |
+| Relation / Rollup / Formula | 🟡 MEDIUM | ✅ | DB間リレーション + 10種集計 + 再帰降下パーサー数式 |
+| タイムラインビュー | 🟢 LOW | ✅ | ガントチャート、日/週/月スケール、今日マーカー |
+| チャートビュー | 🟢 LOW | ✅ | 棒/円/折れ線グラフ、ゼロ依存 SVG/CSS |
 
 ---
 
@@ -85,9 +85,9 @@
 ```
            HIGH Impact
               │
-    Phase 1 ✅│  Phase 4 🔄
-    エディタ  │  メディア + メンション + コメント
-    Phase 2 ✅│  (7/12 完了)
+    Phase 1 ✅│  Phase 4 ✅
+    エディタ  │  メディア + リレーション + ビュー
+    Phase 2 ✅│  (12/12 完了)
     テーブル  │
     Phase 3 ✅│
     コラボ    │

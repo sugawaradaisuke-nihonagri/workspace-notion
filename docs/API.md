@@ -82,8 +82,8 @@ protectedProcedure.query
 
 **入力**: `{ workspaceId: uuid }`
 **認可**: メンバーシップ検証
-**レスポンス**: `{ userId, role, name, image }[]` — ワークスペースメンバー一覧 (users JOIN)
-**用途**: @メンション候補の取得
+**レスポンス**: `{ userId, role, userName, userImage, userEmail }[]` — ワークスペースメンバー一覧 (users JOIN)
+**用途**: @メンション候補の取得、ShareModal の招待候補
 
 ---
 
@@ -395,6 +395,54 @@ protectedProcedure.mutation — 入力: { pageId: uuid }
 ```
 **認可**: `requirePageRole(editor)`
 **処理**: Soft delete
+
+---
+
+## pageShares ルーター
+
+### pageShares.list
+
+```
+protectedProcedure.query — 入力: { pageId: uuid }
+```
+
+**認可**: `requirePageRole(admin)` — 管理者以上のみ共有設定を閲覧可能
+**レスポンス**: `{ userId, role, userName, userImage, userEmail }[]` — ページの共有メンバー一覧
+
+### pageShares.create
+
+```
+protectedProcedure.mutation
+```
+
+**入力**:
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| pageId | uuid | ✅ | 共有するページ |
+| userId | uuid | ✅ | 共有先ユーザー |
+| role | admin/editor/commenter/viewer | ✅ | 付与するロール |
+
+**認可**: `requirePageRole(admin)`
+
+### pageShares.update
+
+```
+protectedProcedure.mutation — 入力: { pageId, userId, role }
+```
+
+**認可**: `requirePageRole(admin)`
+
+### pageShares.delete
+
+```
+protectedProcedure.mutation — 入力: { pageId, userId }
+```
+
+**認可**: `requirePageRole(admin)`
+
+### 権限解決: resolveEffectiveRole
+
+ページアクセス時、`workspace_members.role` と `page_shares.role` の**高い方**を有効ロールとして適用。これにより、ワークスペースでは viewer でも特定ページで editor 権限を持てる。
 
 ---
 
