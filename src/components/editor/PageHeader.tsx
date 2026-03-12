@@ -245,6 +245,7 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
           ref={titleRef}
           contentEditable
           suppressContentEditableWarning
+          dir="ltr"
           onInput={handleTitleInput}
           onKeyDown={handleTitleKeyDown}
           data-placeholder="Untitled"

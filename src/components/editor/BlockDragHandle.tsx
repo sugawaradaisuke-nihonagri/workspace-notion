@@ -125,11 +125,15 @@ export function BlockDragHandle() {
     const editorDom = editor.view.dom;
     editorDom.addEventListener("mousemove", handleMouseMove);
 
-    const handleMouseLeave = () => {
-      if (!isDragging) {
-        setHoveredBlock(null);
-        setHandlePos(null);
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (isDragging) return;
+      // Don't clear if the mouse moved into the block handle buttons
+      const relatedTarget = e.relatedTarget as HTMLElement | null;
+      if (relatedTarget && wrapperRef.current?.contains(relatedTarget)) {
+        return;
       }
+      setHoveredBlock(null);
+      setHandlePos(null);
     };
     editorDom.addEventListener("mouseleave", handleMouseLeave);
 
@@ -138,6 +142,21 @@ export function BlockDragHandle() {
       editorDom.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, [editor, handleMouseMove, isDragging]);
+
+  // Clear handles when mouse leaves the handle layer entirely
+  const handleLayerLeave = useCallback(
+    (e: React.MouseEvent) => {
+      if (isDragging) return;
+      const relatedTarget = e.relatedTarget as HTMLElement | null;
+      // Don't clear if moving back into the editor
+      if (relatedTarget && editor?.view.dom.contains(relatedTarget)) {
+        return;
+      }
+      setHoveredBlock(null);
+      setHandlePos(null);
+    },
+    [editor, isDragging],
+  );
 
   // --- Insert paragraph above ---
   const handleInsertAbove = useCallback(() => {
@@ -297,7 +316,11 @@ export function BlockDragHandle() {
     <div ref={wrapperRef} className="block-handle-layer">
       {/* Floating handle */}
       {handlePos && hoveredBlock && !isDragging && (
-        <div className="block-handle-group" style={{ top: handlePos.top }}>
+        <div
+          className="block-handle-group"
+          style={{ top: handlePos.top }}
+          onMouseLeave={handleLayerLeave}
+        >
           {/* + button */}
           <button
             className="block-handle-btn"
