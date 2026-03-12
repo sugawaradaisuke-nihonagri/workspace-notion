@@ -1,6 +1,7 @@
 /**
  * Export utilities — Convert Tiptap JSONContent to Markdown or HTML
  */
+import { sanitizeHtml } from "./sanitize";
 
 interface TiptapNode {
   type: string;
@@ -220,9 +221,12 @@ function tableToMarkdown(node: TiptapNode): string {
 // ========== Tiptap JSON → HTML ==========
 
 export function tiptapToHtml(doc: TiptapNode, title?: string): string {
-  const bodyHtml = doc.content
+  const rawBodyHtml = doc.content
     ? doc.content.map((node) => nodeToHtml(node)).join("\n")
     : "";
+
+  // Sanitize only the user-generated body content (not the trusted template wrapper)
+  const bodyHtml = sanitizeHtml(rawBodyHtml);
 
   return `<!DOCTYPE html>
 <html lang="ja">

@@ -8,6 +8,7 @@ import { Editor } from "@/components/editor";
 import { DatabasePage } from "@/components/database";
 import { CommentSidebar } from "@/components/comments";
 import { trpc } from "@/lib/trpc/client";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 interface PageEditorViewProps {
   workspaceId: string;
@@ -65,7 +66,9 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 overflow-hidden">
             <PageHeader pageId={pageId} workspaceId={workspaceId} />
-            <DatabasePage databaseId={pageId} workspaceId={workspaceId} />
+            <ErrorBoundary label="データベース">
+              <DatabasePage databaseId={pageId} workspaceId={workspaceId} />
+            </ErrorBoundary>
           </div>
           {collabUser && (
             <CommentSidebar
@@ -91,7 +94,13 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <PageHeader pageId={pageId} workspaceId={workspaceId} />
-          <Editor pageId={pageId} workspaceId={workspaceId} user={collabUser} />
+          <ErrorBoundary label="エディタ">
+            <Editor
+              pageId={pageId}
+              workspaceId={workspaceId}
+              user={collabUser}
+            />
+          </ErrorBoundary>
         </div>
         {collabUser && (
           <CommentSidebar
