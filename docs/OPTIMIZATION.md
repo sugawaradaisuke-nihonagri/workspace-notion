@@ -8,6 +8,7 @@
 | ブロック操作応答 | < 50ms | ProseMirror 直接操作 (ローカル即時) |
 | 1000ブロックページ | スムーズスクロール | ProseMirror 内部DOM管理で対応 |
 | DB 10,000行 | テーブル操作可能 | クライアントサイドフィルタ/ソートで対応 |
+| リアルタイム同期遅延 | < 100ms | Yjs CRDT + WebSocket で即時反映 |
 
 ---
 
@@ -154,7 +155,7 @@
 
 **効果**: フィルタ/ソート切り替えが 0ms (メモリ内計算のみ)。10,000行未満ではサーバーラウンドトリップ不要
 
-**リスク**: 10,000行超では初回フェッチが遅延する可能性 → Phase 3 でサーバーサイドフィルタ検討
+**リスク**: 10,000行超では初回フェッチが遅延する可能性 → サーバーサイドフィルタ検討
 
 **関連ファイル**: `src/components/database/views/TableView.tsx`
 
@@ -171,3 +172,31 @@
 **効果**: 初回ロードサイズ ~500KB 削減。ピッカー初回表示時のみダウンロード
 
 **関連ファイル**: `src/components/editor/PageHeader.tsx`
+
+---
+
+### 🚀 Yjs 状態の DB 永続化 (デバウンス)
+
+**実施日**: 2026-03-12
+
+**Before**: Yjs Y.Doc はメモリのみ → サーバー再起動で全状態消失
+
+**After**: Y.Doc 更新 → 2秒デバウンス → `yjs_documents` テーブルに bytea として保存。サーバー起動時にDBから復元
+
+**効果**: サーバー再起動後もドキュメント状態が完全復元。デバウンスで DB 書き込み頻度を抑制
+
+**関連ファイル**: `server/ws.ts`, `src/lib/db/schema.ts` (yjs_documents テーブル)
+
+---
+
+### 🚀 権限チェックの一元化
+
+**実施日**: 2026-03-12
+
+**Before**: 各ルーターに inline の `verifyPageAccess` / `verifyDatabaseAccess` 関数が重複 (~200行の重複コード)
+
+**After**: `verify-access.ts` に `requirePageRole` / `requireDatabaseRole` を集約。全6ルーターで共有
+
+**効果**: ~260行の重複コード削減。ロール階層の変更が1箇所で完結。新ルーター追加時も1行で権限チェック完了
+
+**関連ファイル**: `src/lib/trpc/verify-access.ts`, `src/lib/permissions.ts`

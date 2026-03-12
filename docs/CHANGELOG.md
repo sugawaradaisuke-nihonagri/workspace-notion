@@ -1,5 +1,62 @@
 # 開発履歴
 
+## [0.4.0] - 2026-03-12 — Phase 3: リアルタイムコラボレーション
+
+### 🔐 5段階ロールベース権限管理 (`d40fa57`)
+- `permissions.ts`: owner(5) > admin(4) > editor(3) > commenter(2) > viewer(1) の階層
+- `verify-access.ts`: 共有の `requirePageRole` / `requireDatabaseRole` ヘルパー
+- 全6ルーター (blocks, comments, pages, database-properties, database-rows, database-views) のインラインアクセスチェックを置き換え
+- ~260行の重複コード削減
+- `roleEnum` を `["owner", "admin", "editor", "commenter", "viewer"]` に更新
+- DB マイグレーション: 既存の `member` → `editor`, `guest` → `viewer` に移行
+
+### 💬 コメントシステム (`b86fb1c`)
+- `commentsRouter`: list (スレッド構造), create (返信), update (著者のみ), resolve (解決/未解決), delete (カスケード)
+- `CommentSidebar.tsx`: 右サイドバー (320px幅), 新規コメント入力, スレッド一覧
+- `CommentThread.tsx`: アバター, 著者名, 相対時刻, 返信, 解決トグル, 編集/削除メニュー
+- `Topbar.tsx`: コメントボタン + 未解決件数バッジ追加
+- `page-editor-view.tsx`: コメントサイドバー統合
+
+### 💾 Yjs 状態の DB 永続化 (`5b6d776`)
+- `yjs_documents` テーブル追加 (pageId PK, state bytea, updatedAt)
+- `server/ws.ts` を完全書き換え: Room作成時にDBから Y.Doc を復元
+- 2秒デバウンスで `encodeStateAsUpdate()` → DB保存
+- Graceful shutdown: SIGINT/SIGTERM で全ルームの状態をDBにフラッシュ
+- 空ルーム30秒ごとのクリーンアップ
+
+### 🔄 リアルタイム同時編集基盤 (`6bca8a8`)
+- **y-websocket サーバー** (`server/ws.ts`): ポート4444, Room-based Y.Doc管理
+- **Yjs プロバイダ Hook** (`use-yjs-provider.ts`): Y.Doc + WebSocketProvider ライフサイクル管理
+- **カーソル色** (`cursor-colors.ts`): 8色のカラーパレット (ユーザーIDハッシュで割り当て)
+- **Tiptap Collaboration拡張**: `getEditorExtensions()` にCollabOptions対応追加
+  - コラボモード時: StarterKit History無効化, Collaboration + CollaborationCursor 追加
+- **Editor.tsx 大幅書き換え**: デュアルモード (コラボ/フォールバック), Y.Doc コンテンツブリッジ
+- **CollabPresenceBar.tsx**: リモートユーザーの色付きドット + 名前表示
+- **globals.css**: コラボカーソルのキャレット + ラベルスタイル追加
+- 依存関係追加: yjs, y-websocket, y-prosemirror, y-protocols, lib0, ws, @tiptap/extension-collaboration, @tiptap/extension-collaboration-cursor
+
+---
+
+## [0.3.1] - 2026-03-12 — Phase 2 仕上げ + バグ修正
+
+### 🐛 バグ修正 (`3291a5d`)
+- **タイトル入力 RTL 問題**: contentEditable div に `dir="ltr"` 追加。Unicode Bidirectional Algorithm の CJK 誤検出を回避
+- **+ボタンホバー消失**: `mouseleave` で `e.relatedTarget` をチェックし、ハンドルボタンへの移動時に状態クリアを防止
+
+### 🗄️ Phase 2 残りの機能 (`47d8c2d`)
+- セル Optimistic Update
+- SelectCell: プロパティ設定更新で新オプション追加
+- 行の D&D 並替
+- プロパティ列の D&D 並替
+
+### 📊 ビュー追加 (`1d8360e`)
+- ボードビュー (カンバン): select/status/person/checkbox でグループ化、カード D&D
+- カレンダービュー: date プロパティで月間表示、前月/翌月ナビゲーション
+- ギャラリービュー: カード型グリッド表示、カバー画像/アイコン/タイトル/3プロパティ
+- ビュー管理: ビュータブ切り替え + 新規ビュー作成
+
+---
+
 ## [0.3.0] - 2026-03-12 — Phase 2: データベーステーブルビュー
 
 ### 🗄️ tRPC ルーター (3つ追加)
@@ -30,7 +87,7 @@
 - `URLCell`: URL入力 + 外部リンクアイコン
 - `EmailCell`: メール入力 + mailto リンク
 - `PhoneCell`: 電話番号入力 + tel リンク
-- `FilesCell`: アップロードプレースホルダー (Phase 3 で S3 連携)
+- `FilesCell`: アップロードプレースホルダー (S3 連携予定)
 
 ### 📊 テーブルビュー
 - `TableView.tsx`: メインテーブルコンポーネント
@@ -49,18 +106,13 @@
 
 ### 🔍 フィルタ/ソート/グループ
 - `FilterBar.tsx`: フィルター条件追加UI
-  - プロパティ選択 + オペレーター (equals/contains/is_empty/is_not_empty) + 値入力
-  - 複数条件対応、条件バッジ表示
 - `SortBar.tsx`: ソート条件追加UI
-  - プロパティ選択 + 昇順/降順トグル
-  - 複数ソートキー対応
 - `GroupBar.tsx`: グループ化UI
-  - select/multi_select/status/person/checkbox/date のグループ化対応
 
 ### 🔧 統合
 - `DatabaseView.tsx`: ビュータブ + コントロール + ビューコンテンツの統合コンポーネント
 - `page-editor-view.tsx`: `page.type === "database"` で Editor → DatabaseView に分岐
-- 共有型定義: `src/types/database.ts` (PropertyType, CellValue, FilterCondition, SortRule 等)
+- 共有型定義: `src/types/database.ts`
 - `globals.css`: テーブル/sticky/date input/select/active state スタイル追加
 
 ---
@@ -71,24 +123,19 @@
 - `PageHeader.tsx`: カバー画像 (5種グラデーション + URL入力)
 - 絵文字ピッカー: `@emoji-mart/react` lazy loading
 - タイトル編集: contentEditable div + 500ms デバウンス → pages.update
-- メタ情報: 最終更新日時表示
 - Enter キーで Tiptap エディタにフォーカス移動
 
 ### 🧭 Topbar
 - `Topbar.tsx`: パンくずリスト (parentId 走査)
-- 各パンくず要素はクリックで遷移 (最後のページ以外)
-- 右側: ユーザーアイコン (プレゼンスプレースホルダー)、共有ボタン、⋯メニュー
+- 右側: ユーザーアイコン、共有ボタン、⋯メニュー
 
 ### ⌨️ キーボードショートカット
-- `keyboard-shortcuts.ts`: Tiptap Extension
-- ⌘D (Ctrl+D): ブロック複製 (getJSON → insertContentAt)
-- ⌘⇧↑ / ⌘⇧↓: ブロック上下移動 (ProseMirror transaction)
+- ⌘D (Ctrl+D): ブロック複製
+- ⌘⇧↑ / ⌘⇧↓: ブロック上下移動
 - Tab: コードブロック内で2スペース挿入、リストではネスト
 
 ### ⚡ Optimistic Updates
-- `pages.update` (PageHeader): pages.get + pages.list キャッシュを即座更新
-- `pages.create` (Sidebar/PageTreeItem): 仮UUID プレースホルダー追加
-- `pages.reorder` (PageTree): 配列内要素移動
+- `pages.update` / `pages.create` / `pages.reorder` に適用
 - 全ての optimistic update に onError ロールバック付き
 - QueryClient デフォルト: staleTime 30s, mutation retry off
 
@@ -97,118 +144,31 @@
 ## [0.2.0] - 2026-03-12 — Phase 1: コアエディタ (Week 1-3)
 
 ### ✏️ Tiptap ブロックエディタ (Week 1)
-- EditorProvider パターンで editor インスタンスを Context 共有
-- StarterKit (Paragraph, Heading H1-H3, BulletList, OrderedList, Blockquote)
-- カスタム Extension: CalloutExtension (emoji + inline content, ReactNodeView)
-- カスタム Extension: ToggleExtension (開閉状態管理, block+ content)
-- カスタム Extension: DividerExtension (hr atom ノード)
-- CodeBlockLowlight (lowlight + 40+ 言語シンタックスハイライト)
-- TaskList + TaskItem (nested チェックボックス)
-- Underline, Highlight (multicolor), Link (autolink)
-- Placeholder Extension ("「/」でコマンド入力…")
+- EditorProvider パターン
+- StarterKit + カスタム Extension (Callout, Toggle, Divider)
+- CodeBlockLowlight (40+ 言語)
 - 自動保存: onChange → debounce 1000ms → blocks.update
-- EditorContent: maxWidth 860px, px 52px, DESIGN_SYSTEM タイポグラフィ準拠
-- `immediatelyRender={false}` で SSR hydration mismatch 回避
-- `@tiptap/core`, `@tiptap/pm`, `lowlight` をパッケージ追加
 
 ### ⚡ スラッシュコマンド (Week 2)
-- SlashCommandExtension (@tiptap/suggestion, char: "/")
-- SlashMenu UI: 300px幅, カテゴリ別グルーピング (基本/メディア/高度)
-- 16種ブロックタイプ: テキスト, H1-H3, Todo, 箇条書き, 番号付き, トグル, 引用, 区切り線, コールアウト, コード, 画像, ブックマーク, テーブル, 子ページ
-- リアルタイムフィルタ (日本語 label + 英語 alias + description)
-- ↑↓ キーでハイライト移動, Enter で選択, ESC で閉じる
-- ReactRenderer + document.body.appendChild でポータルマウント
+- SlashCommandExtension (@tiptap/suggestion)
+- 16種ブロックタイプ、リアルタイムフィルタ
 
 ### 🔀 ブロック D&D + コンテキストメニュー (Week 3)
-- BlockDragHandle: 各ブロック左に ⋮⋮ ドラッグハンドル + ⊕ 挿入ボタン
-- hover 時に opacity 0→0.6 でハンドル表示
-- ネイティブ HTML5 drag + ProseMirror Transaction でブロック並替
-- ドロップインジケーター (border-top: 2px solid accent-blue)
-- ドラッグ中ブロック: opacity 0.3
-- BlockContextMenu: ⋮⋮ クリックで表示 (220px, DESIGN_SYSTEM 5.4 準拠)
-  - 🗑️ 削除 / 📋 複製 / ↻ Turn Into (10種) / ↑↓ 移動 / 🎨 カラー (10色) / 🔗 リンクコピー
-- Turn Into サブメニュー: H1-H3, Text, Todo, Bullet, Numbered, Quote, Callout, Code
-- BlockColorExtension: addGlobalAttributes で9ノードタイプに blockColor 追加
-- カラーサブメニュー: 10色 + デフォルト (CSS 変数で背景色適用)
-- Shift+Click マルチ選択 → ProseMirror TextSelection → Delete/Backspace で一括削除
-- 選択ブロック背景ハイライト (accent-blue-bg)
+- BlockDragHandle + ネイティブ drag + ProseMirror Transaction
+- BlockContextMenu: Turn Into, カラー, 複製, 移動
+- Shift+Click マルチ選択 + 一括削除
 
-### 🔍 SearchModal (Week 4 一部)
-- Zustand search-store (isOpen, open, close, toggle)
-- ⌘K / Ctrl+K グローバルショートカット
-- オーバーレイ: bg-black/40 + backdrop-filter blur(6px)
-- モーダル: 540px幅, top 14vh, rounded-14px, shadow-xl
-- 検索入力: デバウンス 200ms → trpc.pages.search
-- 最近のページ: updatedAt 降順 6件 (クエリ未入力時)
-- キーボードナビゲーション: ↑↓ 選択, Enter 遷移, ESC 閉じる
-- サイドバー SearchBar クリック連携
-
-### 🎨 エディタスタイル
-- ProseMirror / Tiptap 全ブロックの CSS (globals.css)
-- H1: 30px/bold, H2: 23px/semibold, H3: 18px/semibold
-- Paragraph: 15px, line-height 1.7
-- TaskItem: checkbox + line-through on check
-- Blockquote: 3px border-left, italic
-- CodeBlock: #1a1a1a bg, lowlight 構文カラー
-- ブロックハンドル, ドロップインジケーター, マルチ選択ハイライトの CSS
+### 🔍 SearchModal
+- ⌘K グローバル検索、デバウンス 200ms
 
 ---
 
 ## [0.1.0] - 2026-03-12 — Phase 0: プロジェクト初期化
 
 ### 🏗️ プロジェクトセットアップ
-- Next.js 16 プロジェクト作成 (App Router, TypeScript, Tailwind CSS v4)
-- pnpm パッケージマネージャ導入
-- 30+ パッケージインストール (Drizzle, tRPC, Auth.js, Tiptap, dnd-kit, etc.)
-- CLAUDE.md のディレクトリ構成に従った src/ 構造作成
-
-### 🎨 デザインシステム
-- DESIGN_SYSTEM.md のカラートークンを CSS 変数として `globals.css` に定義
-- ダークテーマ (デフォルト) + ライトテーマ (`[data-theme="light"]`)
-- Tailwind v4 `@theme inline` でカラー・Radius・フォントをマッピング
-
-### 🗄️ データベース
-- Drizzle ORM スキーマ定義 (12テーブル、5 enum)
-- Neon PostgreSQL に `workspace` データベース作成
-- `drizzle-kit push` でスキーマ反映
-- `drizzle-kit generate` でマイグレーションファイル生成
-
-### 🔐 認証
-- Auth.js v5 (next-auth beta.30) セットアップ
-- GitHub + Google OAuth プロバイダ
-- Drizzle Adapter (accounts, verificationTokens テーブル)
-- JWT セッション戦略 (userId をトークンに含める)
-- middleware で認証チェック (未ログイン → /login リダイレクト)
-- /login ページ (GitHub/Google ボタン)
-
-### 🔌 API
-- tRPC v11 セットアップ (fetchRequestHandler + SuperJSON)
-- `protectedProcedure`: 認証チェック
-- `workspaceProcedure`: 認証 + workspaceId + メンバーシップ検証
-- workspace ルーター: create, get, update
-- pages ルーター: list, get, create, update, delete, restore, reorder, search
-- blocks ルーター: list, create, update, delete, reorder, bulkDelete
-- 全エンドポイントに Zod バリデーション
-
-### 🧭 サイドバー
-- Sidebar コンポーネント (展開 260px / 折りたたみ 44px)
-- Zustand ストアで開閉状態管理
-- Framer Motion でアニメーション
-- WorkspaceHeader (絵文字 + 名前 + « ボタン)
-- SearchBar (⌘K ラベル)
-- SectionLabel (セクション見出し)
-- PageTree + PageTreeItem (再帰ツリー、depth paddingLeft)
-- @dnd-kit でページ D&D 並替
-- ホバーで ⋯ (メニュー) + (サブページ作成) ボタン
-- CollapsedSidebar (アイコンのみ表示)
-- TrashSection (ゴミ箱リンク)
-
-### 🏠 ルーティング
-- `/(workspace)/[workspaceId]/layout.tsx` — Server Component でDB検証
-- `/(workspace)/[workspaceId]/[pageId]/page.tsx` — ページエディタ (プレースホルダ)
-- トップページ: ワークスペース存在時はリダイレクト、なければ作成フォーム
-- CreateWorkspaceForm を tRPC に接続
-
-### 🧩 プロバイダー
-- SessionProvider + trpc.Provider + QueryClientProvider をラップ
-- 型拡張: next-auth.d.ts (Session に userId 追加)
+- Next.js 16 + TypeScript + Tailwind CSS v4
+- Drizzle ORM スキーマ (12テーブル)
+- Auth.js v5 (GitHub + Google OAuth)
+- tRPC v11 (workspace / pages / blocks ルーター)
+- サイドバー (展開/折りたたみ、ページツリー、D&D)
+- ルーティング + プロバイダー

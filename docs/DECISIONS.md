@@ -95,7 +95,7 @@
 **決定日**: 2026-03-12
 **理由**: 1ページに1つの DB ブロック（type: "paragraph"）がページ全体の Tiptap JSONContent を `content` に保持。既存の blocks.list / blocks.update API をそのまま使用でき、スキーマ変更不要
 **代替案**: pages テーブルに content JSONB カラム追加、個別ブロック ↔ Tiptap Node 双方向変換
-**トレードオフ**: 個別ブロックの CRDT 同期は Phase 3 で再設計が必要
+**トレードオフ**: 個別ブロックの CRDT 同期は Yjs の Y.Doc が管理するため、blocks テーブルはフォールバック用
 
 ---
 
@@ -113,7 +113,7 @@
 **決定日**: 2026-03-12
 **理由**: Tiptap が ProseMirror を通じて DOM を管理するため、@dnd-kit で DOM 要素を sortable にすると ProseMirror のドキュメントモデルと不整合が発生。ネイティブ drag イベント + ProseMirror の `tr.mapping.map()` で安全に移動
 **代替案**: @dnd-kit/sortable で Tiptap NodeView をラップ、react-dnd
-**トレードオフ**: @dnd-kit の高度な機能（DragOverlay のアニメーション等）は未使用。将来的に必要なら DragOverlay のみ追加可能
+**トレードオフ**: @dnd-kit の高度な機能（DragOverlay のアニメーション等）は未使用
 
 ---
 
@@ -131,7 +131,7 @@
 **決定日**: 2026-03-12
 **理由**: Tiptap の `@tiptap/suggestion` が ProseMirror Plugin + Decoration の抽象化を提供。`ReactRenderer` で React コンポーネントをポータル的にマウント可能
 **代替案**: 自前の ProseMirror Plugin + InputRule、prosemirror-suggest
-**トレードオフ**: ReactRenderer の `require()` による動的インポートが必要（SSR 環境では使用されないため問題なし）
+**トレードオフ**: ReactRenderer の `require()` による動的インポートが必要
 
 ---
 
@@ -140,7 +140,7 @@
 **決定日**: 2026-03-12
 **理由**: Notion のようにユーザーが自由に列を追加/削除できる動的カラムを実現。`database_properties` (列定義) と `database_cell_values` (セル値) を分離し、JSONB value で任意の型を格納
 **代替案**: PostgreSQL の ALTER TABLE で動的カラム追加、JSONB で行全体を1カラムに格納
-**トレードオフ**: JOIN が複雑になる。10,000行超では全セル一括取得が遅延する可能性 → クライアントサイドフィルタで補完
+**トレードオフ**: JOIN が複雑になる。10,000行超では全セル一括取得が遅延する可能性
 
 ---
 
@@ -149,7 +149,7 @@
 **決定日**: 2026-03-12
 **理由**: データベースのフィルタ/ソート/グループをクライアント側の `useMemo` で処理。フィルタ条件変更のたびにサーバーへ再クエリする必要がなく、即時応答
 **代替案**: サーバーサイドフィルタ (SQL WHERE + ORDER BY)
-**トレードオフ**: 全行+全セルを初回一括取得するため、10,000行超でペイロードサイズが問題に。Phase 3 でサーバーサイドフィルタを追加検討
+**トレードオフ**: 全行+全セルを初回一括取得するため、10,000行超でペイロードサイズが問題に
 
 ---
 
@@ -159,3 +159,48 @@
 **理由**: フィルタ/ソート/グループ/表示列を `database_views` テーブルに JSONB で保存。ビュー切り替え時に設定を即座にロード
 **代替案**: URL パラメータでフィルタ条件を表現、LocalStorage
 **トレードオフ**: ビュー設定変更のたびに DB 書き込みが発生するが、mutation debounce で緩和可能
+
+---
+
+## Yjs CRDT + y-websocket (リアルタイム同時編集)
+
+**決定日**: 2026-03-12
+**理由**: Yjs は最も広く使われている CRDT 実装で、Tiptap が公式に Collaboration 拡張を提供。y-websocket v3 はスタンドアロンサーバーとして運用可能で、Next.js のサーバーレス制約に影響されない
+**代替案**: Liveblocks (SaaS), Automerge, ShareDB (OT)
+**トレードオフ**: y-websocket サーバーを別プロセスでホスティングする必要あり。Vercel Edge Functions では WebSocket サーバーを直接ホストできないため、Railway/Fly.io 等が必要
+
+---
+
+## Tiptap Collaboration + CollaborationCursor
+
+**決定日**: 2026-03-12
+**理由**: Tiptap の公式拡張で Y.Doc との連携が確立。StarterKit の History と排他的なため、コラボモード時は History を無効化して Yjs の undo manager に委譲
+**代替案**: y-prosemirror プラグインを直接使用
+**トレードオフ**: CollaborationCursor v2 は Tiptap v3 との peer dep 警告あり（機能上は問題なし）
+
+---
+
+## Yjs 状態の PostgreSQL bytea 永続化
+
+**決定日**: 2026-03-12
+**理由**: Yjs の `encodeStateAsUpdate()` で Y.Doc を Uint8Array にシリアライズし、PostgreSQL の bytea カラムに保存。2秒デバウンスで DB 書き込み頻度を抑制。別途のKVストア（Redis等）が不要
+**代替案**: Redis に保存、S3 に保存、y-leveldb で LevelDB に保存
+**トレードオフ**: bytea カラムは大きなドキュメントでは数MB になる可能性 → 将来的にガベージコレクション（encodeStateAsUpdate → mergeUpdates）を検討
+
+---
+
+## 5段階ロールベース権限管理
+
+**決定日**: 2026-03-12
+**理由**: Notion の権限モデルを参考に、owner/admin/editor/commenter/viewer の5段階。数値レベル (5→1) で比較することで、`hasRole(userRole, minRole)` の1関数でチェック可能
+**代替案**: ページ単位の ACL (Access Control List)、属性ベースアクセス制御 (ABAC)
+**トレードオフ**: ワークスペース単位のロールのみで、ページ単位の個別権限はなし。Phase 4 以降でページ単位の共有設定を追加検討
+
+---
+
+## 権限チェックの一元化 (verify-access.ts)
+
+**決定日**: 2026-03-12
+**理由**: 各ルーターに散在していた inline の `verifyPageAccess` を `verify-access.ts` に集約。`requirePageRole` と `requireDatabaseRole` の2関数で全ルーターの認可を統一
+**代替案**: tRPC middleware として全プロシージャに自動適用
+**トレードオフ**: middleware 方式だと pageId/databaseId の取得パターンがプロシージャごとに異なるため、明示的な関数呼び出しの方が柔軟
