@@ -204,3 +204,57 @@
 **理由**: 各ルーターに散在していた inline の `verifyPageAccess` を `verify-access.ts` に集約。`requirePageRole` と `requireDatabaseRole` の2関数で全ルーターの認可を統一
 **代替案**: tRPC middleware として全プロシージャに自動適用
 **トレードオフ**: middleware 方式だと pageId/databaseId の取得パターンがプロシージャごとに異なるため、明示的な関数呼び出しの方が柔軟
+
+---
+
+## 画像ブロック / メディアブロックの分離設計
+
+**決定日**: 2026-03-13
+**理由**: 画像はリサイズ、D&D アップロード、キャプション編集など固有機能が多い。動画/音声/ファイル/ブックマーク/埋め込みは「メディア種別に応じた表示」という共通パターン。2つの Extension に分離することで各 NodeView のコードが明確
+**代替案**: 全メディアを1つの Extension にまとめる
+**トレードオフ**: Extension が2つに分かれるが、それぞれの NodeView が単一責任で保守しやすい
+
+---
+
+## Tiptap atom: true によるメディアブロック
+
+**決定日**: 2026-03-13
+**理由**: `atom: true` でカーソルがノード内部に入らない Notion 風の挙動を実現。ユーザーはブロック全体を選択/削除/移動する
+**代替案**: content ありのノード (テキストを含むブロック)
+**トレードオフ**: atom ノード内のテキスト編集はできないが、メディアブロックにはそもそもテキストコンテンツがないため問題なし
+
+---
+
+## ストレージ抽象化 (ローカル / S3 デュアルモード)
+
+**決定日**: 2026-03-13
+**理由**: 開発環境では S3 セットアップ不要。`STORAGE_BACKEND` 環境変数で自動切り替え。S3 SDK は動的インポートで、未インストールでもビルド可能
+**代替案**: 常に S3 を使用 (LocalStack で開発)、Cloudflare R2 の SDK を直接使用
+**トレードオフ**: ローカルファイルは `public/uploads/` に保存 → .gitignore で除外必要。S3 SDK の `Function('return import()')` は ESLint 警告あり
+
+---
+
+## @tiptap/extension-mention + createMentionExtension ファクトリ
+
+**決定日**: 2026-03-13
+**理由**: Tiptap の公式 Mention extension は Suggestion API を内包しており、スラッシュコマンドと同じパターンで実装可能。`createMentionExtension(getItems)` ファクトリで React hooks からのデータを静的な Extension に注入
+**代替案**: カスタム Extension + ProseMirror Plugin で自前実装
+**トレードオフ**: `@tiptap/extension-mention` の型が厳格で、カスタム props (type, icon) を MentionNodeAttrs に渡せない → 外部リストで管理
+
+---
+
+## インラインコメント: ProseMirror Decoration vs Mark
+
+**決定日**: 2026-03-13
+**理由**: Decoration はドキュメント構造を変えず表示レイヤーのみで動作。Mark だと Yjs CRDT のドキュメントモデルに影響し、コンフリクトリスクがある。Decoration はトランザクションごとに再計算されるため、ドキュメント変更にも追従
+**代替案**: ProseMirror Mark でハイライト、カスタム Attribute で commentId を格納
+**トレードオフ**: Decoration はドキュメント変更時に位置がずれる可能性 → inlineRef.text でフォールバック検索可能
+
+---
+
+## InlineCommentBridge パターン (useCurrentEditor)
+
+**決定日**: 2026-03-13
+**理由**: `EditorProvider` の親コンポーネントからエディタインスタンスにアクセスできない。子コンポーネントの `InlineCommentBridge` が `useCurrentEditor()` で取得し、inline comment の Decoration 同期とポップオーバーを管理
+**代替案**: `useEditor` + props drilling、ref による外部アクセス
+**トレードオフ**: 子コンポーネントが増えるが、関心の分離が明確。Editor.tsx の肥大化を防止

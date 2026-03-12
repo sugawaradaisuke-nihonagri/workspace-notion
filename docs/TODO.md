@@ -30,22 +30,22 @@
 
 ---
 
-## Phase 4: メディア + 拡張ビュー 🔲 未着手
+## Phase 4: メディア + 拡張ビュー 🔄 進行中
 
-| タスク | 優先度 | 工数 | 説明 |
+| タスク | 優先度 | 状態 | 説明 |
 |--------|--------|------|------|
-| 画像ブロック (アップロード + URL) | 🔴 HIGH | 6h | S3/R2 連携、ドラッグ&ドロップ、リサイズ |
-| ファイルブロック (アップロード + ダウンロード) | 🟡 MEDIUM | 4h | S3/R2 連携、プレビュー |
-| 動画/音声ブロック | 🟢 LOW | 4h | embed + ネイティブプレイヤー |
-| ブックマークブロック (OGP プレビュー) | 🟡 MEDIUM | 3h | URL メタデータ取得 |
-| Embed ブロック (iframe) | 🟢 LOW | 2h | YouTube, Figma, etc. |
-| FilesCell: S3 アップロード連携 | 🟡 MEDIUM | 4h | データベースのファイルカラム |
-| タイムラインビュー | 🟢 LOW | 8h | date プロパティのガントチャート |
-| チャートビュー | 🟢 LOW | 6h | 集計データの可視化 |
-| Relation / Rollup / Formula | 🟡 MEDIUM | 8h | DB 間のリレーション |
-| ページ共有設定 (個別権限) | 🟡 MEDIUM | 6h | ページ単位のアクセス制御 |
-| @メンション (ユーザー/ページリンク) | 🟡 MEDIUM | 4h | Suggestion API で実装 |
-| インラインコメント (テキスト選択 → コメント) | 🟡 MEDIUM | 4h | ProseMirror Decoration |
+| 画像ブロック (アップロード + URL + リサイズ) | 🔴 HIGH | ✅ | S3/R2 連携、D&D、100-860px リサイズ |
+| ファイルブロック (アップロード + ダウンロード) | 🟡 MEDIUM | ✅ | S3/R2 連携、サイズ表示 |
+| 動画/音声ブロック | 🟢 LOW | ✅ | ネイティブプレイヤー、embed |
+| ブックマークブロック | 🟡 MEDIUM | ✅ | URL プレビュー、OGP 対応 |
+| Embed ブロック (iframe) | 🟢 LOW | ✅ | YouTube/Vimeo/Figma/CodePen 自動変換 |
+| @メンション (ユーザー/ページリンク) | 🟡 MEDIUM | ✅ | Suggestion API + MentionMenu |
+| インラインコメント (テキスト選択 → コメント) | 🟡 MEDIUM | ✅ | ProseMirror Decoration ハイライト |
+| FilesCell: S3 アップロード連携 | 🟡 MEDIUM | 🔲 | データベースのファイルカラム |
+| ページ共有設定 (個別権限) | 🟡 MEDIUM | 🔲 | ページ単位のアクセス制御 |
+| Relation / Rollup / Formula | 🟡 MEDIUM | 🔲 | DB 間のリレーション |
+| タイムラインビュー | 🟢 LOW | 🔲 | date プロパティのガントチャート |
+| チャートビュー | 🟢 LOW | 🔲 | 集計データの可視化 |
 
 ---
 
@@ -85,9 +85,9 @@
 ```
            HIGH Impact
               │
-    Phase 1 ✅│  Phase 4
-    エディタ  │  メディア + 拡張
-    Phase 2 ✅│
+    Phase 1 ✅│  Phase 4 🔄
+    エディタ  │  メディア + メンション + コメント
+    Phase 2 ✅│  (7/12 完了)
     テーブル  │
     Phase 3 ✅│
     コラボ    │

@@ -1,5 +1,43 @@
 # 開発履歴
 
+## [0.5.0] - 2026-03-13 — Phase 4: メディア + 拡張機能 (進行中)
+
+### 💬 インラインコメント (未コミット)
+- `InlineCommentExtension`: ProseMirror Plugin + Decoration でテキスト範囲ハイライト
+- `InlineCommentPopover.tsx`: テキスト選択時のフローティング「コメント追加」ボタン
+- `InlineCommentBridge.tsx`: EditorProvider 内ブリッジ — `useCurrentEditor()` でエディタインスタンスに接続
+- `use-inline-comments.ts` hook: サーバーのコメントデータを ProseMirror Decoration に変換
+- `CommentThread.tsx`: インライン参照テキストバッジ (`InlineRefBadge`) 追加
+- `.inline-comment-highlight` CSS: 黄色半透明ハイライト + 下線
+
+### @ メンション (`7e58982`)
+- `@tiptap/extension-mention` 導入: `@` トリガーで Suggestion ドロップダウン表示
+- `MentionExtension` + `createMentionExtension()` ファクトリ: ワークスペース固有データ注入
+- `MentionMenu.tsx`: ユーザー (アバター表示) + ページ (アイコン表示) の2カテゴリドロップダウン
+- `workspace.members` tRPC クエリ追加: ワークスペースメンバー一覧取得 (users JOIN)
+- `use-mention-items.ts` hook: メンバー + ページを MentionItem[] に変換、クエリフィルタリング
+- `Editor.tsx`: `workspaceId` prop 追加、`getMentionItems` を Extensions に注入
+- `.mention` CSS チップスタイル: 青色半透明背景 + インライン表示
+- スラッシュコマンドに `/メンション` エントリ追加
+
+### 🖼️ メディアブロック (`9730977`)
+- **ファイルストレージ抽象化** (`src/lib/storage.ts`):
+  - `uploadFile()`: MIME タイプ検証 (18種) + 10MB 上限
+  - 開発: `public/uploads/` にローカル保存
+  - 本番: `STORAGE_BACKEND=s3` で S3/R2 に保存 (動的インポート)
+- **Upload API** (`src/app/api/upload/route.ts`): POST, FormData, 認証チェック
+- **ImageBlockExtension** (`image-extension.ts`):
+  - `atom: true, draggable: true`, 属性: src, alt, caption, width, uploading
+  - `ImageView.tsx`: D&D アップロード、URL 入力、右端リサイズハンドル (100-860px)、キャプション編集
+- **MediaBlockExtension** (`media-block-extension.ts`):
+  - 5種メディア: video, audio, file, bookmark, embed
+  - `MediaBlockView.tsx`: 種類別の空状態 + ロード状態 UI
+  - `toEmbedUrl()`: YouTube/Vimeo/Figma/CodePen の URL 変換
+- スラッシュコマンドに5種メディア追加 (動画/音声/ファイル/ブックマーク/埋め込み)
+- `.gitignore`: `/public/uploads` 追加
+
+---
+
 ## [0.4.0] - 2026-03-12 — Phase 3: リアルタイムコラボレーション
 
 ### 🔐 5段階ロールベース権限管理 (`d40fa57`)

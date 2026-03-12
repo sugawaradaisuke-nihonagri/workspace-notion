@@ -74,6 +74,40 @@ protectedProcedure.mutation
 **入力**: `{ workspaceId: uuid, name?: string, icon?: string }`
 **認可**: owner または admin のみ
 
+### workspace.members
+
+```
+protectedProcedure.query
+```
+
+**入力**: `{ workspaceId: uuid }`
+**認可**: メンバーシップ検証
+**レスポンス**: `{ userId, role, name, image }[]` — ワークスペースメンバー一覧 (users JOIN)
+**用途**: @メンション候補の取得
+
+---
+
+## Upload API (REST)
+
+### POST /api/upload
+
+**認証**: Auth.js セッション (Cookie)
+**Content-Type**: `multipart/form-data`
+**入力**: `file` フィールド (FormData)
+
+**バリデーション**:
+- MIME タイプ: 18種 (画像6, 動画3, 音声4, ドキュメント5)
+- サイズ上限: 10MB
+
+**レスポンス**:
+```json
+{ "url": "/uploads/uuid.jpg", "key": "uuid.jpg", "size": 12345, "mimeType": "image/jpeg", "name": "photo.jpg" }
+```
+
+**ストレージ**:
+- `STORAGE_BACKEND` 未設定: `public/uploads/` にローカル保存
+- `STORAGE_BACKEND=s3`: S3 互換 API (Cloudflare R2, AWS S3) に保存
+
 ---
 
 ## pages ルーター

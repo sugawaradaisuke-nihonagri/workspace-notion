@@ -200,3 +200,45 @@
 **効果**: ~260行の重複コード削減。ロール階層の変更が1箇所で完結。新ルーター追加時も1行で権限チェック完了
 
 **関連ファイル**: `src/lib/trpc/verify-access.ts`, `src/lib/permissions.ts`
+
+---
+
+### 🚀 S3 SDK の動的インポート
+
+**実施日**: 2026-03-13
+
+**Before**: `@aws-sdk/client-s3` を静的 import → SDK 未インストール環境でビルドエラー
+
+**After**: `Function('return import("@aws-sdk/client-s3")')()` で実行時のみ動的ロード。STORAGE_BACKEND !== "s3" なら SDK 不要
+
+**効果**: ローカル開発で S3 SDK 不要。バンドルサイズ ~300KB 削減 (ローカルモード時)
+
+**関連ファイル**: `src/lib/storage.ts`
+
+---
+
+### 🚀 @メンション候補の staleTime 30秒キャッシュ
+
+**実施日**: 2026-03-13
+
+**Before**: (新規実装) メンション候補を毎回サーバーに問い合わせ
+
+**After**: `workspace.members` と `pages.list` の useQuery に `staleTime: 30_000` を設定。メンション入力のたびに再フェッチせずキャッシュから返却
+
+**効果**: メンションドロップダウンの表示遅延ゼロ。API 呼び出し頻度を最小化
+
+**関連ファイル**: `src/hooks/use-mention-items.ts`
+
+---
+
+### 🚀 インラインコメント Decoration の効率的再構築
+
+**実施日**: 2026-03-13
+
+**Before**: (新規実装)
+
+**After**: `inlineCommentPluginKey.setMeta()` でコメントデータを注入。ProseMirror Plugin の `apply()` がトランザクションごとに Decoration を再計算。resolved コメントと範囲外コメントはスキップ
+
+**効果**: 未解決コメントのみを Decoration 対象とし、不要な DOM 操作を回避
+
+**関連ファイル**: `src/components/editor/extensions/inline-comment-extension.ts`

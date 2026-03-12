@@ -115,6 +115,7 @@ src/
 │   │   └── workspace-layout.tsx  # Client: Sidebar + main
 │   ├── api/
 │   │   ├── auth/[...nextauth]/   # Auth.js ルートハンドラ
+│   │   ├── upload/route.ts       # ファイルアップロード API (POST)
 │   │   └── trpc/[trpc]/          # tRPC fetchRequestHandler
 │   ├── layout.tsx                # Root: Providers ラップ
 │   └── page.tsx                  # トップ: WS作成 or リダイレクト
@@ -125,16 +126,22 @@ src/
 │   │   ├── PageHeader.tsx        # カバー画像 + 絵文字 + タイトル
 │   │   ├── BlockDragHandle.tsx   # ⋮⋮ ドラッグ + ⊕ + マルチ選択
 │   │   ├── CollabPresenceBar.tsx # リモートユーザーカーソル表示
-│   │   ├── extensions/           # Tiptap Extensions (14 + 2 Collab)
-│   │   │   ├── index.ts          # Extensions バンドル (CollabOptions 対応)
+│   │   ├── InlineCommentPopover.tsx # テキスト選択→コメント追加ポップオーバー
+│   │   ├── InlineCommentBridge.tsx # EditorProvider内ブリッジ (useCurrentEditor)
+│   │   ├── extensions/           # Tiptap Extensions (18 + 2 Collab)
+│   │   │   ├── index.ts          # Extensions バンドル (Collab + Mention + InlineComment)
 │   │   │   ├── callout-extension.ts
 │   │   │   ├── toggle-extension.ts
 │   │   │   ├── divider-extension.ts
+│   │   │   ├── image-extension.ts    # 画像ブロック (atom, リサイズ)
+│   │   │   ├── media-block-extension.ts # 動画/音声/ファイル/ブックマーク/埋め込み
+│   │   │   ├── mention-extension.ts  # @メンション (Suggestion API)
+│   │   │   ├── inline-comment-extension.ts # ProseMirror Decoration ハイライト
 │   │   │   ├── slash-command.ts
 │   │   │   ├── block-color.ts
 │   │   │   └── keyboard-shortcuts.ts
-│   │   ├── blocks/               # カスタム NodeView
-│   │   └── menus/                # メニュー UI
+│   │   ├── blocks/               # カスタム NodeView (ImageView, MediaBlockView)
+│   │   └── menus/                # メニュー UI (SlashMenu, MentionMenu)
 │   ├── database/                 # データベースビュー
 │   │   ├── DatabaseView.tsx      # メイン: ビュータブ + コントロール + ビュー
 │   │   ├── properties/           # セルエディタ (13タイプ)
@@ -148,6 +155,7 @@ src/
 │   │   └── Topbar.tsx            # パンくず + コメントボタン
 │   └── ui/                       # 汎用 UI
 ├── lib/
+│   ├── storage.ts               # ファイルストレージ抽象化 (ローカル / S3)
 │   ├── auth/                     # Auth.js 設定 (遅延adapter)
 │   ├── db/
 │   │   ├── schema.ts            # Drizzle スキーマ (13テーブル)
@@ -172,6 +180,8 @@ src/
 │           └── database-views.ts
 ├── stores/                       # Zustand ストア
 ├── hooks/                        # カスタム Hooks
+│   ├── use-mention-items.ts     # @メンション候補データ
+│   └── use-inline-comments.ts   # インラインコメント → Decoration 同期
 ├── types/                        # 型定義
 └── middleware.ts                  # 認証チェック
 
@@ -268,6 +278,35 @@ Client → CommentSidebar → Enter
 → trpc.comments.create (requirePageRole: commenter)
 → comments テーブルに INSERT (parentId でスレッド構造)
 → invalidate → コメント一覧再取得 → スレッド表示更新
+```
+
+### インラインコメントフロー
+```
+テキスト選択 → InlineCommentPopover 表示 → 「コメント」ボタン
+→ from/to/text をキャプチャ
+→ trpc.comments.create (inlineRef: {from, to, text})
+→ invalidate → useInlineComments が新コメントを取得
+→ inlineCommentPluginKey.setMeta() で Decoration を再生成
+→ エディタ内に黄色ハイライト表示
+```
+
+### ファイルアップロードフロー
+```
+画像/メディア NodeView → ファイル選択 or D&D
+→ FormData → POST /api/upload (auth チェック)
+→ validateFile (MIME + 10MB)
+→ STORAGE_BACKEND === "s3" ? uploadS3() : uploadLocal()
+→ { url, key, size, mimeType } を返却
+→ NodeView が updateAttributes({ src: url })
+```
+
+### @メンションフロー
+```
+"@" 入力 → Suggestion Plugin がトリガー
+→ getMentionItems(query) — useMentionItems hook のデータを検索
+→ MentionMenu 表示 (ユーザー + ページ)
+→ 選択 → insertContentAt({ type: "mention", attrs: {id, label} })
+→ .mention チップとしてインライン表示
 ```
 
 ## セキュリティ
