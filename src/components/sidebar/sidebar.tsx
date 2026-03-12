@@ -11,6 +11,8 @@ import { SearchBar } from "./search-bar";
 import { SectionLabel } from "./section-label";
 import { PageTree } from "./page-tree";
 import { TrashSection } from "./trash-section";
+import { FavoritesSection } from "./favorites-section";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { CollapsedSidebar } from "./collapsed-sidebar";
 
 interface SidebarProps {
@@ -98,26 +100,32 @@ export function Sidebar({
             <SearchBar onOpen={handleSearchOpen} />
           </div>
 
+          {/* お気に入り */}
+          <FavoritesSection workspaceId={workspaceId} />
+
           {/* ページツリー */}
           <div className="flex-1 overflow-y-auto">
             <SectionLabel label="ページ" />
             <PageTree workspaceId={workspaceId} />
           </div>
 
-          {/* 新規ページ作成ボタン */}
+          {/* 新規ページ作成ボタン + テーマ切替 */}
           <div className="border-t border-[var(--border-default)] px-[10px] py-[6px]">
-            <button
-              onClick={handleNewPage}
-              disabled={createPage.isPending}
-              className="flex h-[30px] w-full items-center gap-2 rounded px-[10px] text-[13.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
-            >
-              <Plus size={16} />
-              <span>新規ページ</span>
-            </button>
+            <div className="flex items-center">
+              <button
+                onClick={handleNewPage}
+                disabled={createPage.isPending}
+                className="flex h-[30px] flex-1 items-center gap-2 rounded px-[10px] text-[13.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+              >
+                <Plus size={16} />
+                <span>新規ページ</span>
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* ゴミ箱 */}
-          <TrashSection />
+          <TrashSection workspaceId={workspaceId} />
         </motion.aside>
       ) : (
         <motion.div

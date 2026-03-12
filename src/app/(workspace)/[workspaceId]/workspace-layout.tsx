@@ -3,6 +3,7 @@
 import { Sidebar } from "@/components/sidebar";
 import { SearchModal } from "@/components/shared/search-modal";
 import { ShareModal } from "@/components/shared/ShareModal";
+import { NotificationPanel } from "@/components/shared/NotificationPanel";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
@@ -27,6 +28,7 @@ export function WorkspaceLayout({
       <main className="flex-1 overflow-y-auto">{children}</main>
       <SearchModal />
       <ShareModal />
+      <NotificationPanel />
     </div>
   );
 }

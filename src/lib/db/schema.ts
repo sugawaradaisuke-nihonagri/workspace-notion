@@ -278,7 +278,44 @@ export const pageVersions = pgTable("page_versions", {
   pageId: uuid("page_id")
     .references(() => pages.id, { onDelete: "cascade" })
     .notNull(),
+  title: text("title"),
   blocksSnapshot: jsonb("blocks_snapshot").notNull(),
   editedBy: uuid("edited_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/** User favorites — per-user bookmark of pages */
+export const favorites = pgTable("favorites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  pageId: uuid("page_id")
+    .references(() => pages.id, { onDelete: "cascade" })
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/** Notification type enum */
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "mention",
+  "comment",
+  "reply",
+  "share",
+  "page_update",
+]);
+
+/** In-app notifications */
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message"),
+  pageId: uuid("page_id").references(() => pages.id, { onDelete: "cascade" }),
+  actorId: uuid("actor_id").references(() => users.id),
+  isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

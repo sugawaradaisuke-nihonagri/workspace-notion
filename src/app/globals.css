@@ -106,6 +106,30 @@
   --text-disabled: #d3d3d0;
 }
 
+/* === ライトテーマ: エディタ & DB 補正 === */
+[data-theme="light"] .editor-code-block {
+  background: #f5f5f5;
+}
+
+[data-theme="light"] .editor-code-block code {
+  color: #37352f;
+}
+
+[data-theme="light"] .database-table-wrapper input[type="date"] {
+  color-scheme: light;
+}
+
+[data-theme="light"] .database-table-wrapper select,
+[data-theme="light"] select[class*="bg-secondary"] {
+  color-scheme: light;
+}
+
+[data-theme="light"] em-emoji-picker {
+  --rgb-background: 255, 255, 255;
+  --rgb-input: 245, 245, 245;
+  --rgb-color: 55, 53, 47;
+}
+
 /* === Tailwind v4 Theme Mapping === */
 @theme inline {
   /* Background */

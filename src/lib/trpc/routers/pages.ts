@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { eq, and, asc, ilike, sql } from "drizzle-orm";
+import { eq, and, asc, desc, ilike, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { router, workspaceProcedure, protectedProcedure } from "../init";
-import { pages, blocks } from "@/lib/db/schema";
+import { pages, blocks, users } from "@/lib/db/schema";
 import { requirePageRole } from "../verify-access";
 import type { Database } from "@/lib/db";
 
@@ -288,5 +288,48 @@ export const pagesRouter = router({
         .limit(20);
 
       return results;
+    }),
+
+  /** List deleted pages (trash) */
+  trash: workspaceProcedure.query(async ({ ctx, input }) => {
+    const rows = await ctx.db
+      .select({
+        id: pages.id,
+        title: pages.title,
+        icon: pages.icon,
+        type: pages.type,
+        deletedAt: pages.deletedAt,
+        lastEditedBy: pages.lastEditedBy,
+        editorName: users.name,
+      })
+      .from(pages)
+      .leftJoin(users, eq(pages.lastEditedBy, users.id))
+      .where(
+        and(
+          eq(pages.workspaceId, input.workspaceId),
+          eq(pages.isDeleted, true),
+        ),
+      )
+      .orderBy(desc(pages.deletedAt))
+      .limit(100);
+
+    return rows;
+  }),
+
+  /** Permanently delete a page (irreversible) */
+  permanentDelete: protectedProcedure
+    .input(z.object({ pageId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "admin",
+      );
+
+      // Blocks are cascade-deleted by FK
+      await ctx.db.delete(pages).where(eq(pages.id, input.pageId));
+
+      return { success: true };
     }),
 });

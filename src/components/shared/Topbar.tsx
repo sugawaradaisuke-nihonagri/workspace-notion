@@ -3,14 +3,17 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Bell,
   ChevronRight,
   MessageCircle,
-  MoreHorizontal,
   Share2,
+  Star,
   Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 import { useShareStore } from "@/stores/share-store";
+import { useNotificationStore } from "@/stores/notification-store";
+import { MoreMenu } from "./MoreMenu";
 
 interface TopbarProps {
   workspaceId: string;
@@ -27,8 +30,32 @@ export function Topbar({
 }: TopbarProps) {
   const router = useRouter();
   const openShare = useShareStore((s) => s.open);
+  const toggleNotifications = useNotificationStore((s) => s.toggle);
+  const utils = trpc.useUtils();
+  const { data: unreadCount } = trpc.notifications.unreadCount.useQuery();
   const { data: allPages } = trpc.pages.list.useQuery({ workspaceId });
   const { data: page } = trpc.pages.get.useQuery({ pageId });
+  const { data: isFavorited } = trpc.favorites.isFavorited.useQuery({ pageId });
+
+  const toggleFavorite = trpc.favorites.toggle.useMutation({
+    onMutate: async () => {
+      await utils.favorites.isFavorited.cancel({ pageId });
+      const previous = utils.favorites.isFavorited.getData({ pageId });
+      utils.favorites.isFavorited.setData({ pageId }, (old) =>
+        old ? { favorited: !old.favorited } : { favorited: true },
+      );
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous !== undefined) {
+        utils.favorites.isFavorited.setData({ pageId }, context.previous);
+      }
+    },
+    onSettled: () => {
+      utils.favorites.isFavorited.invalidate({ pageId });
+      utils.favorites.list.invalidate({ workspaceId });
+    },
+  });
 
   // Build breadcrumb chain by walking parentId upward
   const breadcrumbs = useMemo(() => {
@@ -103,6 +130,32 @@ export function Topbar({
           </div>
         </div>
 
+        {/* Notification bell */}
+        <button
+          onClick={toggleNotifications}
+          className="relative flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        >
+          <Bell size={16} />
+          {unreadCount != null && unreadCount.count > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+              {unreadCount.count}
+            </span>
+          )}
+        </button>
+
+        {/* Favorite toggle */}
+        <button
+          onClick={() => toggleFavorite.mutate({ pageId })}
+          className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        >
+          <Star
+            size={16}
+            className={
+              isFavorited?.favorited ? "fill-current text-yellow-400" : ""
+            }
+          />
+        </button>
+
         {/* Comment button */}
         {onToggleComments && (
           <button
@@ -129,9 +182,7 @@ export function Topbar({
         </button>
 
         {/* More menu */}
-        <button className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]">
-          <MoreHorizontal size={16} />
-        </button>
+        <MoreMenu pageId={pageId} workspaceId={workspaceId} />
       </div>
     </div>
   );
