@@ -14,7 +14,20 @@ function getBaseUrl(): string {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30 * 1000, // 30s — reduce redundant refetches
+            retry: 1,
+          },
+          mutations: {
+            retry: false, // optimistic mutations should fail fast
+          },
+        },
+      }),
+  );
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

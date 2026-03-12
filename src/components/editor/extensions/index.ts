@@ -15,6 +15,7 @@ import { ToggleExtension } from "./toggle-extension";
 import { DividerExtension } from "./divider-extension";
 import { SlashCommandExtension } from "./slash-command";
 import { BlockColorExtension } from "./block-color";
+import { KeyboardShortcutsExtension } from "./keyboard-shortcuts";
 
 const lowlight = createLowlight(common);
 
@@ -77,6 +78,7 @@ export function getEditorExtensions() {
     DividerExtension,
     SlashCommandExtension,
     BlockColorExtension,
+    KeyboardShortcutsExtension,
   ];
 }
 
@@ -86,4 +88,5 @@ export {
   DividerExtension,
   SlashCommandExtension,
   BlockColorExtension,
+  KeyboardShortcutsExtension,
 };

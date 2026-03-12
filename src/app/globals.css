@@ -549,3 +549,35 @@ body {
   pointer-events: none;
   z-index: 5;
 }
+
+/* ============================================
+   Page Header
+   ============================================ */
+
+.page-title[contenteditable]:focus {
+  outline: none;
+}
+
+.page-title[contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+}
+
+/* ============================================
+   Topbar
+   ============================================ */
+
+.topbar {
+  background: var(--bg-primary);
+}
+
+/* ============================================
+   Emoji Mart overrides (dark theme)
+   ============================================ */
+
+em-emoji-picker {
+  --border-radius: 10px;
+  --rgb-background: 37, 37, 37;
+  --rgb-input: 30, 30, 30;
+  --rgb-color: 255, 255, 255;
+}

@@ -43,9 +43,44 @@ export function PageTreeItem({
 
   const utils = trpc.useUtils();
   const createPage = trpc.pages.create.useMutation({
+    onMutate: async (input) => {
+      await utils.pages.list.cancel({ workspaceId });
+      const previousList = utils.pages.list.getData({ workspaceId });
+
+      const optimisticPage = {
+        id: crypto.randomUUID(),
+        workspaceId: input.workspaceId,
+        parentId: input.parentId ?? null,
+        title: input.title ?? "Untitled",
+        icon: input.icon ?? "📄",
+        type: input.type ?? ("page" as const),
+        position: "z",
+        coverUrl: null,
+        databaseId: null,
+        isDeleted: false,
+        deletedAt: null,
+        createdBy: "",
+        lastEditedBy: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      utils.pages.list.setData({ workspaceId }, (old) =>
+        old ? [...old, optimisticPage] : [optimisticPage],
+      );
+
+      return { previousList };
+    },
     onSuccess: (newPage) => {
-      utils.pages.list.invalidate({ workspaceId });
       router.push(`/${workspaceId}/${newPage.id}`);
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previousList) {
+        utils.pages.list.setData({ workspaceId }, context.previousList);
+      }
+    },
+    onSettled: () => {
+      utils.pages.list.invalidate({ workspaceId });
     },
   });
 

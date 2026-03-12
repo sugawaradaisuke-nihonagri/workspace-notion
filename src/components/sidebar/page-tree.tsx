@@ -27,7 +27,38 @@ export function PageTree({ workspaceId }: PageTreeProps) {
 
   const utils = trpc.useUtils();
   const reorderPage = trpc.pages.reorder.useMutation({
-    onSuccess: () => {
+    onMutate: async (input) => {
+      await utils.pages.list.cancel({ workspaceId });
+      const previousList = utils.pages.list.getData({ workspaceId });
+
+      // Optimistically move the page in the list
+      utils.pages.list.setData({ workspaceId }, (old) => {
+        if (!old) return old;
+        const list = [...old];
+        const activeIdx = list.findIndex((p) => p.id === input.pageId);
+        if (activeIdx === -1) return list;
+
+        const [moved] = list.splice(activeIdx, 1);
+        moved.parentId = input.parentId;
+
+        if (input.afterPageId === null) {
+          // Move to beginning of siblings
+          list.unshift(moved);
+        } else {
+          const afterIdx = list.findIndex((p) => p.id === input.afterPageId);
+          list.splice(afterIdx + 1, 0, moved);
+        }
+        return list;
+      });
+
+      return { previousList };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previousList) {
+        utils.pages.list.setData({ workspaceId }, context.previousList);
+      }
+    },
+    onSettled: () => {
       utils.pages.list.invalidate({ workspaceId });
     },
   });
