@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, X } from "lucide-react";
 import type { SelectOption } from "@/types/database";
 import { SELECT_COLORS } from "@/types/database";
@@ -9,12 +9,14 @@ interface MultiSelectCellProps {
   value: string[];
   onChange: (value: string[]) => void;
   config: Record<string, unknown>;
+  onConfigChange?: (config: Record<string, unknown>) => void;
 }
 
 export function MultiSelectCell({
   value,
   onChange,
   config,
+  onConfigChange,
 }: MultiSelectCellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -59,6 +61,28 @@ export function MultiSelectCell({
   function handleRemove(optionId: string): void {
     onChange(value.filter((v) => v !== optionId));
   }
+
+  const handleCreateOption = useCallback(
+    (label: string) => {
+      const colorIdx = options.length % SELECT_COLORS.length;
+      const newOption: SelectOption = {
+        id: crypto.randomUUID(),
+        label,
+        color: SELECT_COLORS[colorIdx].id,
+      };
+      const newOptions = [...options, newOption];
+
+      // Persist the new option to property config
+      if (onConfigChange) {
+        onConfigChange({ ...config, options: newOptions });
+      }
+
+      // Select the new option
+      onChange([...value, newOption.id]);
+      setSearch("");
+    },
+    [options, config, onConfigChange, onChange, value],
+  );
 
   const selectedOptions = value
     .map((id) => options.find((o) => o.id === id))
@@ -153,11 +177,7 @@ export function MultiSelectCell({
 
             {search && !options.some((o) => o.label === search) && (
               <button
-                onClick={() => {
-                  onChange([...value, search]);
-                  setIsOpen(false);
-                  setSearch("");
-                }}
+                onClick={() => handleCreateOption(search)}
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] text-[var(--accent-blue)] hover:bg-[var(--bg-hover)]"
               >
                 <Plus size={12} />「{search}」を作成

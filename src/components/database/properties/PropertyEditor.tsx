@@ -20,6 +20,7 @@ interface PropertyEditorProps {
   value: CellValue;
   onChange: (value: CellValue) => void;
   config?: Record<string, unknown>;
+  onConfigChange?: (config: Record<string, unknown>) => void;
   pageId?: string;
   isInline?: boolean;
   workspaceId?: string;
@@ -30,6 +31,7 @@ export function PropertyEditor({
   value,
   onChange,
   config = {},
+  onConfigChange,
   pageId,
   isInline = true,
   workspaceId,
@@ -71,6 +73,7 @@ export function PropertyEditor({
           value={(value as string) ?? null}
           onChange={(v) => onChange(v)}
           config={config}
+          onConfigChange={onConfigChange}
         />
       );
     case "multi_select":
@@ -79,6 +82,7 @@ export function PropertyEditor({
           value={(value as string[]) ?? []}
           onChange={(v) => onChange(v)}
           config={config}
+          onConfigChange={onConfigChange}
         />
       );
     case "status":

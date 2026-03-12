@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
 import type { SelectOption } from "@/types/database";
 import { SELECT_COLORS } from "@/types/database";
@@ -12,7 +12,12 @@ interface SelectCellProps {
   onConfigChange?: (config: Record<string, unknown>) => void;
 }
 
-export function SelectCell({ value, onChange, config }: SelectCellProps) {
+export function SelectCell({
+  value,
+  onChange,
+  config,
+  onConfigChange,
+}: SelectCellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -44,6 +49,30 @@ export function SelectCell({ value, onChange, config }: SelectCellProps) {
       ? { bg: color.bg, text: color.text }
       : { bg: "var(--bg-tertiary)", text: "var(--text-secondary)" };
   }
+
+  const handleCreateOption = useCallback(
+    (label: string) => {
+      // Pick a random color from the palette
+      const colorIdx = options.length % SELECT_COLORS.length;
+      const newOption: SelectOption = {
+        id: crypto.randomUUID(),
+        label,
+        color: SELECT_COLORS[colorIdx].id,
+      };
+      const newOptions = [...options, newOption];
+
+      // Persist the new option to property config
+      if (onConfigChange) {
+        onConfigChange({ ...config, options: newOptions });
+      }
+
+      // Select the new option
+      onChange(newOption.id);
+      setIsOpen(false);
+      setSearch("");
+    },
+    [options, config, onConfigChange, onChange],
+  );
 
   return (
     <div className="relative" ref={ref}>
@@ -120,13 +149,7 @@ export function SelectCell({ value, onChange, config }: SelectCellProps) {
 
             {search && !filtered.some((o) => o.label === search) && (
               <button
-                onClick={() => {
-                  // 新しいオプションを作成するにはプロパティ設定の更新が必要
-                  // ここではシンプルにIDとしてsearch文字列を使用
-                  onChange(search);
-                  setIsOpen(false);
-                  setSearch("");
-                }}
+                onClick={() => handleCreateOption(search)}
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] text-[var(--accent-blue)] hover:bg-[var(--bg-hover)]"
               >
                 <Plus size={12} />「{search}」を作成
