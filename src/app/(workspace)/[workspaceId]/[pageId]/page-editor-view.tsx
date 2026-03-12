@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { Topbar } from "@/components/shared/Topbar";
 import { PageHeader } from "@/components/editor/PageHeader";
 import { Editor } from "@/components/editor";
@@ -12,7 +13,15 @@ interface PageEditorViewProps {
 }
 
 export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
+  const { data: session } = useSession();
   const { data: page, isLoading } = trpc.pages.get.useQuery({ pageId });
+
+  const collabUser = session?.user
+    ? {
+        id: session.user.id ?? "unknown",
+        name: session.user.name ?? "Anonymous",
+      }
+    : undefined;
 
   if (isLoading) {
     return (
@@ -51,7 +60,7 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
       <Topbar workspaceId={workspaceId} pageId={pageId} />
       <div className="flex-1 overflow-y-auto">
         <PageHeader pageId={pageId} workspaceId={workspaceId} />
-        <Editor pageId={pageId} />
+        <Editor pageId={pageId} user={collabUser} />
       </div>
     </div>
   );

@@ -8,7 +8,11 @@ import Link from "@tiptap/extension-link";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import { common, createLowlight } from "lowlight";
+import type * as Y from "yjs";
+import type { WebsocketProvider } from "y-websocket";
 
 import { CalloutExtension } from "./callout-extension";
 import { ToggleExtension } from "./toggle-extension";
@@ -19,7 +23,13 @@ import { KeyboardShortcutsExtension } from "./keyboard-shortcuts";
 
 const lowlight = createLowlight(common);
 
-export function getEditorExtensions() {
+interface CollabOptions {
+  ydoc: Y.Doc;
+  provider: WebsocketProvider;
+  user: { name: string; color: string; colorLight: string };
+}
+
+export function getEditorExtensions(collab?: CollabOptions) {
   return [
     StarterKit.configure({
       heading: {
@@ -29,6 +39,8 @@ export function getEditorExtensions() {
       codeBlock: false,
       // StarterKit includes its own horizontalRule — disable in favor of DividerExtension
       horizontalRule: false,
+      // When collaborative, Yjs handles history (undo/redo)
+      ...(collab ? { history: false } : {}),
     }),
 
     Placeholder.configure({
@@ -79,6 +91,19 @@ export function getEditorExtensions() {
     SlashCommandExtension,
     BlockColorExtension,
     KeyboardShortcutsExtension,
+
+    // --- Collaboration extensions (only when provider is available) ---
+    ...(collab
+      ? [
+          Collaboration.configure({
+            document: collab.ydoc,
+          }),
+          CollaborationCursor.configure({
+            provider: collab.provider,
+            user: collab.user,
+          }),
+        ]
+      : []),
   ];
 }
 

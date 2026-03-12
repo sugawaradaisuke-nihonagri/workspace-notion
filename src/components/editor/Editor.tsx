@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorProvider, type JSONContent } from "@tiptap/react";
 import { trpc } from "@/lib/trpc/client";
+import { useYjsProvider, CURSOR_COLORS } from "@/lib/realtime";
 import { getEditorExtensions } from "./extensions";
 import { BlockDragHandle } from "./BlockDragHandle";
+import { CollabPresenceBar } from "./CollabPresenceBar";
 
 interface EditorProps {
   pageId: string;
+  /** Current user info — required for collaboration cursors */
+  user?: { id: string; name: string };
 }
 
 const AUTOSAVE_DELAY = 1000;
@@ -17,13 +21,46 @@ const defaultContent: JSONContent = {
   content: [{ type: "paragraph" }],
 };
 
-export function Editor({ pageId }: EditorProps) {
+export function Editor({ pageId, user }: EditorProps) {
   const [blockId, setBlockId] = useState<string | null>(null);
   const [initialContent, setInitialContent] = useState<JSONContent | null>(
     null,
   );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef<JSONContent | null>(null);
+  const initialLoadedRef = useRef(false);
+
+  // --- Yjs collaboration ---
+  const { ydoc, provider, connected } = useYjsProvider({
+    roomName: `page:${pageId}`,
+    user: user ?? { id: "anonymous", name: "Anonymous" },
+    enabled: !!user,
+  });
+
+  const isCollaborative = !!provider && connected;
+
+  // Compute cursor color for current user
+  const cursorUser = useMemo(() => {
+    if (!user) return undefined;
+    const colorIdx =
+      user.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) %
+      CURSOR_COLORS.length;
+    const c = CURSOR_COLORS[colorIdx];
+    return { name: user.name, color: c.color, colorLight: c.light };
+  }, [user]);
+
+  // Build extensions — memoized per collaboration state
+  const extensions = useMemo(
+    () =>
+      getEditorExtensions(
+        provider && cursorUser
+          ? { ydoc, provider, user: cursorUser }
+          : undefined,
+      ),
+    // Re-create only when provider connection changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [!!provider, ydoc],
+  );
 
   // --- データ取得 ---
   const { data: blockList, isLoading } = trpc.blocks.list.useQuery(
@@ -40,13 +77,12 @@ export function Editor({ pageId }: EditorProps) {
 
   // ブロックデータが来たら初期コンテンツをセット
   useEffect(() => {
-    if (!blockList) return;
+    if (!blockList || initialLoadedRef.current) return;
 
     if (blockList.length > 0) {
       const firstBlock = blockList[0];
       setBlockId(firstBlock.id);
 
-      // content が Tiptap JSONContent 形式なら使う、そうでなければデフォルト
       const content = firstBlock.content as JSONContent;
       if (content && content.type === "doc") {
         setInitialContent(content);
@@ -54,7 +90,6 @@ export function Editor({ pageId }: EditorProps) {
         setInitialContent(defaultContent);
       }
     } else {
-      // ブロックがなければ作成
       setInitialContent(defaultContent);
       createBlock.mutate({
         pageId,
@@ -62,10 +97,18 @@ export function Editor({ pageId }: EditorProps) {
         content: defaultContent as Record<string, unknown>,
       });
     }
+    initialLoadedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockList]);
 
-  // --- 自動保存 ---
+  // Reset on page change
+  useEffect(() => {
+    initialLoadedRef.current = false;
+    setInitialContent(null);
+    setBlockId(null);
+  }, [pageId]);
+
+  // --- 自動保存 (non-collab mode fallback + collab periodic save) ---
   const saveContent = useCallback(
     (content: JSONContent) => {
       if (!blockId) return;
@@ -85,13 +128,15 @@ export function Editor({ pageId }: EditorProps) {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
+      // In collab mode, save less frequently (Yjs handles real-time sync)
+      const delay = isCollaborative ? 5000 : AUTOSAVE_DELAY;
       timerRef.current = setTimeout(() => {
         if (latestContentRef.current) {
           saveContent(latestContentRef.current);
         }
-      }, AUTOSAVE_DELAY);
+      }, delay);
     },
-    [saveContent],
+    [saveContent, isCollaborative],
   );
 
   // コンポーネントアンマウント時に未保存があればフラッシュ
@@ -101,7 +146,6 @@ export function Editor({ pageId }: EditorProps) {
         clearTimeout(timerRef.current);
       }
       if (latestContentRef.current && blockId) {
-        // 同期的に最後の保存を試行
         saveContent(latestContentRef.current);
       }
     };
@@ -123,9 +167,11 @@ export function Editor({ pageId }: EditorProps) {
 
   return (
     <div className="editor-wrapper relative mx-auto max-w-[860px] px-[52px] py-[24px]">
+      {provider && <CollabPresenceBar provider={provider} />}
       <EditorProvider
-        extensions={getEditorExtensions()}
-        content={initialContent}
+        key={`${pageId}-${!!provider}`}
+        extensions={extensions}
+        content={isCollaborative ? undefined : initialContent}
         onUpdate={handleUpdate}
         editorContainerProps={{
           className: "editor-container",
