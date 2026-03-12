@@ -634,3 +634,33 @@ select[class*="bg-secondary"] {
 button[data-active] {
   color: var(--accent-blue) !important;
 }
+
+/* === Board View === */
+.board-column-cards {
+  min-height: 60px;
+}
+
+/* === Calendar View === */
+.calendar-grid-month {
+  min-height: 0;
+}
+
+.calendar-grid-month > div {
+  min-height: 90px;
+}
+
+.calendar-grid-week > div {
+  min-height: 200px;
+}
+
+/* === Gallery View === */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.gallery-card-cover {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}

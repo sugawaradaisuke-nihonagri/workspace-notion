@@ -3,7 +3,7 @@
 import { Topbar } from "@/components/shared/Topbar";
 import { PageHeader } from "@/components/editor/PageHeader";
 import { Editor } from "@/components/editor";
-import { DatabaseView } from "@/components/database";
+import { DatabasePage } from "@/components/database";
 import { trpc } from "@/lib/trpc/client";
 
 interface PageEditorViewProps {
@@ -40,7 +40,7 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
         <Topbar workspaceId={workspaceId} pageId={pageId} />
         <div className="flex-1 overflow-hidden">
           <PageHeader pageId={pageId} workspaceId={workspaceId} />
-          <DatabaseView databaseId={pageId} workspaceId={workspaceId} />
+          <DatabasePage databaseId={pageId} workspaceId={workspaceId} />
         </div>
       </div>
     );
