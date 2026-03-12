@@ -1,9 +1,25 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Plus, LayoutGrid, Table, List } from "lucide-react";
+import {
+  Plus,
+  LayoutGrid,
+  Table,
+  List,
+  Calendar,
+  GalleryHorizontal,
+  GanttChart,
+  BarChart3,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
-import { TableView } from "./views";
+import {
+  TableView,
+  BoardView,
+  CalendarView,
+  GalleryView,
+  TimelineView,
+  ChartView,
+} from "./views";
 import { FilterBar, SortBar, GroupBar } from "./controls";
 import type { FilterCondition, SortRule, ViewLayout } from "@/types/database";
 
@@ -15,7 +31,11 @@ interface DatabaseViewProps {
 const VIEW_ICONS: Record<string, React.ReactNode> = {
   table: <Table size={14} />,
   board: <LayoutGrid size={14} />,
+  calendar: <Calendar size={14} />,
+  gallery: <GalleryHorizontal size={14} />,
   list: <List size={14} />,
+  timeline: <GanttChart size={14} />,
+  chart: <BarChart3 size={14} />,
 };
 
 export function DatabaseView({ databaseId, workspaceId }: DatabaseViewProps) {
@@ -176,19 +196,37 @@ export function DatabaseView({ databaseId, workspaceId }: DatabaseViewProps) {
 
       {/* === ビューコンテンツ === */}
       <div className="flex-1 overflow-auto">
-        {activeView?.layout === "table" || !activeView ? (
-          <TableView
-            databaseId={databaseId}
-            workspaceId={workspaceId}
-            viewId={activeView?.id}
-            filters={filters}
-            sorts={sorts}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-[14px] text-[var(--text-tertiary)]">
-            {activeView.layout} ビューは Phase 3 で実装予定
-          </div>
-        )}
+        {(() => {
+          const layout = activeView?.layout ?? "table";
+          const viewProps = {
+            databaseId,
+            workspaceId,
+            viewId: activeView?.id,
+            filters,
+            sorts,
+          };
+
+          switch (layout) {
+            case "table":
+              return <TableView {...viewProps} />;
+            case "board":
+              return <BoardView {...viewProps} groupByPropertyId={groupBy} />;
+            case "calendar":
+              return <CalendarView {...viewProps} />;
+            case "gallery":
+              return <GalleryView {...viewProps} />;
+            case "timeline":
+              return <TimelineView {...viewProps} />;
+            case "chart":
+              return <ChartView {...viewProps} />;
+            default:
+              return (
+                <div className="flex h-full items-center justify-center text-[14px] text-[var(--text-tertiary)]">
+                  {layout} ビューは未実装です
+                </div>
+              );
+          }
+        })()}
       </div>
     </div>
   );
