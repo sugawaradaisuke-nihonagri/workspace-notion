@@ -2,50 +2,51 @@
 
 ## Phase 1: コアエディタ（4週間）
 
-### Week 1: Tiptap セットアップ + 基本ブロック
+### Week 1: Tiptap セットアップ + 基本ブロック ✅ 完了
 
-| タスク | 優先度 | 工数 |
+| タスク | 優先度 | 状態 |
 |--------|--------|------|
-| Tiptap EditorProvider + JSON 保存 | 🔴 HIGH | 4h |
-| Paragraph, Heading (H1-H3) Extension | 🔴 HIGH | 3h |
-| BulletList, OrderedList, TaskList | 🔴 HIGH | 3h |
-| Blockquote, HorizontalRule | 🟡 MEDIUM | 2h |
-| CodeBlock (シンタックスハイライト) | 🟡 MEDIUM | 3h |
-| Callout (emoji + content) | 🟡 MEDIUM | 2h |
-| Toggle (開閉状態管理) | 🟡 MEDIUM | 3h |
-| Autosave (debounce 1秒) | 🔴 HIGH | 2h |
+| Tiptap EditorProvider + JSON 保存 | 🔴 HIGH | ✅ |
+| Paragraph, Heading (H1-H3) Extension | 🔴 HIGH | ✅ |
+| BulletList, OrderedList, TaskList | 🔴 HIGH | ✅ |
+| Blockquote, HorizontalRule | 🟡 MEDIUM | ✅ |
+| CodeBlock (シンタックスハイライト) | 🟡 MEDIUM | ✅ |
+| Callout (emoji + content) | 🟡 MEDIUM | ✅ |
+| Toggle (開閉状態管理) | 🟡 MEDIUM | ✅ |
+| Autosave (debounce 1秒) | 🔴 HIGH | ✅ |
 
-### Week 2: インラインフォーマット + スラッシュコマンド
+### Week 2: インラインフォーマット + スラッシュコマンド ✅ 完了
 
-| タスク | 優先度 | 工数 |
+| タスク | 優先度 | 状態 |
 |--------|--------|------|
-| Bold, Italic, Underline, Strike | 🔴 HIGH | 2h |
-| Inline Code, Highlight, Link | 🔴 HIGH | 3h |
-| SlashCommand Extension (Suggestion API) | 🔴 HIGH | 6h |
-| SlashMenu UI (DESIGN_SYSTEM 5.3 準拠) | 🔴 HIGH | 4h |
-| 日本語フィルタ対応 | 🟡 MEDIUM | 2h |
+| Bold, Italic, Underline, Strike | 🔴 HIGH | ✅ |
+| Inline Code, Highlight, Link | 🔴 HIGH | ✅ |
+| SlashCommand Extension (Suggestion API) | 🔴 HIGH | ✅ |
+| SlashMenu UI (DESIGN_SYSTEM 5.3 準拠) | 🔴 HIGH | ✅ |
+| 日本語フィルタ対応 | 🟡 MEDIUM | ✅ |
 
-### Week 3: ブロック操作
+### Week 3: ブロック操作 ✅ 完了
 
-| タスク | 優先度 | 工数 |
+| タスク | 優先度 | 状態 |
 |--------|--------|------|
-| BlockDragHandle (⋮⋮ ハンドル) | 🔴 HIGH | 4h |
-| @dnd-kit でブロック並替 | 🔴 HIGH | 4h |
-| ドロップインジケーター (青線) | 🟡 MEDIUM | 2h |
-| ブロックコンテキストメニュー | 🟡 MEDIUM | 4h |
-| Turn into (タイプ変換) | 🟡 MEDIUM | 3h |
-| マルチ選択 (Shift+Click) | 🟢 LOW | 4h |
+| BlockDragHandle (⋮⋮ ハンドル) | 🔴 HIGH | ✅ |
+| ブロック D&D (ProseMirror Transaction) | 🔴 HIGH | ✅ |
+| ドロップインジケーター (青線) | 🟡 MEDIUM | ✅ |
+| ブロックコンテキストメニュー | 🟡 MEDIUM | ✅ |
+| Turn into (タイプ変換) | 🟡 MEDIUM | ✅ |
+| マルチ選択 (Shift+Click) | 🟢 LOW | ✅ |
+| ブロックカラー (10色) | 🟡 MEDIUM | ✅ |
 
-### Week 4: ページ装飾 + 仕上げ
+### Week 4: ページ装飾 + 仕上げ 🟡 進行中
 
-| タスク | 優先度 | 工数 |
+| タスク | 優先度 | 状態 |
 |--------|--------|------|
-| 絵文字ピッカー (ページアイコン) | 🟡 MEDIUM | 3h |
-| カバー画像 | 🟡 MEDIUM | 3h |
-| トップバー (パンくず) | 🔴 HIGH | 3h |
-| キーボードショートカット全般 | 🟡 MEDIUM | 4h |
-| SearchModal (⌘K) | 🔴 HIGH | 4h |
-| Optimistic Update | 🔴 HIGH | 3h |
+| 絵文字ピッカー (ページアイコン) | 🟡 MEDIUM | 🔲 |
+| カバー画像 | 🟡 MEDIUM | 🔲 |
+| トップバー (パンくず) | 🔴 HIGH | 🔲 |
+| キーボードショートカット全般 | 🟡 MEDIUM | 🔲 |
+| SearchModal (⌘K) | 🔴 HIGH | ✅ |
+| Optimistic Update | 🔴 HIGH | 🔲 |
 
 ---
 

@@ -78,3 +78,57 @@
 **理由**: Next.js 16 で `export default auth()` ラッパー方式が動かず、`export async function middleware()` に変更
 **代替案**: Auth.js のラッパー方式を使い続ける（Next.js 14/15 向け）
 **トレードオフ**: middleware 内で `await auth()` を毎回呼ぶオーバーヘッド（JWT デコードのみなので軽微）
+
+---
+
+## Tiptap v2 EditorProvider パターン
+
+**決定日**: 2026-03-12
+**理由**: `useEditor` ではなく `EditorProvider` を採用。子コンポーネント（SlashMenu, BlockDragHandle 等）が `useCurrentEditor()` で editor インスタンスにアクセス可能
+**代替案**: `useEditor` フックで editor を props drilling
+**トレードオフ**: EditorProvider は子コンポーネントを children として配置する制約がある
+
+---
+
+## 単一ブロック ↔ Tiptap JSONContent ブリッジ
+
+**決定日**: 2026-03-12
+**理由**: 1ページに1つの DB ブロック（type: "paragraph"）がページ全体の Tiptap JSONContent を `content` に保持。既存の blocks.list / blocks.update API をそのまま使用でき、スキーマ変更不要
+**代替案**: pages テーブルに content JSONB カラム追加、個別ブロック ↔ Tiptap Node 双方向変換
+**トレードオフ**: 個別ブロックの CRDT 同期は Phase 3 で再設計が必要
+
+---
+
+## StarterKit 衝突回避パターン
+
+**決定日**: 2026-03-12
+**理由**: StarterKit に含まれる `CodeBlock` と `HorizontalRule` をカスタム実装（CodeBlockLowlight, DividerExtension）で置換するため、`codeBlock: false, horizontalRule: false` で無効化
+**代替案**: StarterKit を使わず全 extension を個別インポート
+**トレードオフ**: StarterKit に新 extension が追加された場合に手動対応が必要
+
+---
+
+## ブロック D&D: ネイティブ Drag + ProseMirror Transaction
+
+**決定日**: 2026-03-12
+**理由**: Tiptap が ProseMirror を通じて DOM を管理するため、@dnd-kit で DOM 要素を sortable にすると ProseMirror のドキュメントモデルと不整合が発生。ネイティブ drag イベント + ProseMirror の `tr.mapping.map()` で安全に移動
+**代替案**: @dnd-kit/sortable で Tiptap NodeView をラップ、react-dnd
+**トレードオフ**: @dnd-kit の高度な機能（DragOverlay のアニメーション等）は未使用。将来的に必要なら DragOverlay のみ追加可能
+
+---
+
+## BlockColor: addGlobalAttributes パターン
+
+**決定日**: 2026-03-12
+**理由**: 9種類のブロックノードすべてに `blockColor` 属性を一括追加。個々のノード定義を変更不要
+**代替案**: 各 Node Extension に個別に属性追加
+**トレードオフ**: サポートするノードタイプの配列を手動管理する必要がある
+
+---
+
+## Suggestion API によるスラッシュコマンド
+
+**決定日**: 2026-03-12
+**理由**: Tiptap の `@tiptap/suggestion` が ProseMirror Plugin + Decoration の抽象化を提供。`ReactRenderer` で React コンポーネントをポータル的にマウント可能
+**代替案**: 自前の ProseMirror Plugin + InputRule、prosemirror-suggest
+**トレードオフ**: ReactRenderer の `require()` による動的インポートが必要（SSR 環境では使用されないため問題なし）

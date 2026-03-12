@@ -86,9 +86,25 @@ src/
 │   └── page.tsx                  # トップ: WS作成 or リダイレクト
 ├── components/
 │   ├── sidebar/                  # サイドバー (8コンポーネント)
-│   ├── editor/                   # Tiptap エディタ (Phase 1)
+│   ├── editor/                   # Tiptap ブロックエディタ
+│   │   ├── Editor.tsx            # メイン: EditorProvider + 自動保存
+│   │   ├── BlockDragHandle.tsx   # ⋮⋮ ドラッグ + ⊕ + マルチ選択
+│   │   ├── extensions/           # Tiptap Extensions (13個)
+│   │   │   ├── index.ts          # Extensions バンドル
+│   │   │   ├── callout-extension.ts
+│   │   │   ├── toggle-extension.ts
+│   │   │   ├── divider-extension.ts
+│   │   │   ├── slash-command.ts   # Suggestion API
+│   │   │   └── block-color.ts    # グローバル blockColor 属性
+│   │   ├── blocks/               # カスタム NodeView
+│   │   │   ├── callout-view.tsx
+│   │   │   └── toggle-view.tsx
+│   │   └── menus/                # メニュー UI
+│   │       ├── SlashMenu.tsx     # スラッシュコマンド (16種)
+│   │       └── BlockContextMenu.tsx # 右クリックメニュー
 │   ├── database/                 # DB ビュー (Phase 2)
 │   ├── shared/                   # 共有コンポーネント
+│   │   └── search-modal.tsx      # ⌘K 検索モーダル
 │   └── ui/                       # 汎用 UI
 ├── lib/
 │   ├── auth/                     # Auth.js 設定 (遅延adapter)
@@ -100,6 +116,8 @@ src/
 │       ├── client.ts            # createTRPCReact
 │       └── routers/             # workspace, pages, blocks
 ├── stores/                       # Zustand ストア
+│   ├── sidebar-store.ts          # サイドバー開閉
+│   └── search-store.ts           # 検索モーダル開閉
 ├── hooks/                        # カスタム Hooks
 ├── types/                        # 型定義
 └── middleware.ts                  # 認証チェック

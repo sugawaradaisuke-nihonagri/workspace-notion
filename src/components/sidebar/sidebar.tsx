@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSidebarStore } from "@/stores/sidebar-store";
+import { useSearchStore } from "@/stores/search-store";
 import { trpc } from "@/lib/trpc/client";
 import { WorkspaceHeader } from "./workspace-header";
 import { SearchBar } from "./search-bar";
@@ -39,7 +40,7 @@ export function Sidebar({
   }
 
   function handleSearchOpen(): void {
-    // TODO: SearchModal を開く
+    useSearchStore.getState().open();
   }
 
   return (

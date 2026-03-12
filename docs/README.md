@@ -5,7 +5,7 @@
 | 項目 | 値 |
 |------|-----|
 | 名称 | WorkSpace |
-| バージョン | 0.1.0 (Phase 0 完了) |
+| バージョン | 0.2.0 (Phase 1 Week 1-3 完了) |
 | フレームワーク | Next.js 16 (App Router) |
 | 言語 | TypeScript (strict) |
 | データベース | PostgreSQL 17 (Neon Serverless) |
@@ -70,7 +70,10 @@ AUTH_GOOGLE_SECRET=    # Google OAuth Client Secret (任意)
 ## 📊 現在の状態
 
 - **Phase 0**: ✅ 完了 — プロジェクト初期化、認証、DB、tRPC、サイドバー
-- **Phase 1**: 🔲 未着手 — コアエディタ（Tiptap セットアップ〜ブロック操作）
+- **Phase 1 Week 1**: ✅ 完了 — Tiptap エディタ + 基本ブロック + 自動保存
+- **Phase 1 Week 2**: ✅ 完了 — インラインフォーマット + スラッシュコマンド
+- **Phase 1 Week 3**: ✅ 完了 — ブロック D&D + コンテキストメニュー + マルチ選択
+- **Phase 1 Week 4**: 🟡 一部完了 — SearchModal (⌘K) 実装済み
 - **Phase 2-5**: 🔲 未着手
 
 ### 実装済みコンポーネント
@@ -80,6 +83,12 @@ AUTH_GOOGLE_SECRET=    # Google OAuth Client Secret (任意)
 - Drizzle ORM スキーマ (12テーブル)
 - サイドバー (展開/折りたたみ、ページツリー、D&D)
 - ワークスペース作成フロー
+- SearchModal (⌘K 検索、デバウンス、キーボードナビゲーション)
+- Tiptap ブロックエディタ (13 Extensions、自動保存)
+- スラッシュコマンド (16 ブロックタイプ、リアルタイムフィルタ)
+- ブロック D&D (ドラッグハンドル、ドロップインジケーター)
+- コンテキストメニュー (Turn Into、カラー、複製、移動)
+- マルチ選択 (Shift+Click、一括削除)
 
 ## 📄 ライセンス
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/sidebar";
+import { SearchModal } from "@/components/shared/search-modal";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export function WorkspaceLayout({
         workspaceIcon={workspaceIcon}
       />
       <main className="flex-1 overflow-y-auto">{children}</main>
+      <SearchModal />
     </div>
   );
 }
