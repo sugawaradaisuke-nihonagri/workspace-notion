@@ -93,12 +93,21 @@ export type PropertyConfig =
   | RelationConfig
   | Record<string, unknown>;
 
+// --- File item for files cell ---
+export interface FileItem {
+  url: string;
+  name: string;
+  size: number;
+  mimeType: string;
+}
+
 // --- Cell value types ---
 export type CellValue =
   | string
   | number
   | boolean
-  | string[] // multi_select, person, files
+  | string[] // multi_select, person
+  | FileItem[] // files
   | { start: string; end?: string | null; reminder?: string | null } // date
   | null;
 

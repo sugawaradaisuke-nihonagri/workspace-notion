@@ -1,6 +1,6 @@
 "use client";
 
-import type { PropertyType, CellValue } from "@/types/database";
+import type { PropertyType, CellValue, FileItem } from "@/types/database";
 import { TitleCell } from "./TitleCell";
 import { TextCell } from "./TextCell";
 import { NumberCell } from "./NumberCell";
@@ -133,7 +133,7 @@ export function PropertyEditor({
     case "files":
       return (
         <FilesCell
-          value={(value as string[]) ?? []}
+          value={(value as FileItem[]) ?? []}
           onChange={(v) => onChange(v)}
         />
       );

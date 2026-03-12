@@ -153,7 +153,7 @@ function GalleryPropertyValue({
     }
     case "multi_select": {
       const options = (config?.options as SelectOption[]) ?? [];
-      const ids = Array.isArray(value) ? value : [];
+      const ids = Array.isArray(value) ? (value as string[]) : [];
       display = (
         <div className="flex flex-wrap gap-1">
           {ids.map((id) => {
