@@ -296,6 +296,15 @@ export function TableView({
     return map;
   }, [data?.cells]);
 
+  // --- プロパティ名 → ID マッピング (Formula 用) ---
+  const propertyNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of properties ?? []) {
+      map.set(p.name, p.id);
+    }
+    return map;
+  }, [properties]);
+
   // --- 表示するプロパティ (visible & position 順) ---
   const visibleProperties = useMemo(() => {
     return (properties ?? []).filter((p) => p.isVisible);
@@ -614,43 +623,60 @@ export function TableView({
               <tbody>
                 {filteredRows.map((row) => (
                   <SortableRow key={row.id} rowId={row.id}>
-                    {visibleProperties.map((prop) => {
-                      const isTitle = prop.type === "title";
-                      const cellKey = `${row.id}:${prop.id}`;
-                      const cellValue = isTitle
-                        ? row.title
-                        : (cellMap.get(cellKey) ?? null);
-                      const width = columnWidths[prop.id] ?? prop.width ?? 200;
+                    {(() => {
+                      // Build per-row value map for formula cells
+                      const rowValues = new Map<string, CellValue>();
+                      for (const p of properties ?? []) {
+                        if (p.type === "title") {
+                          rowValues.set(p.id, row.title);
+                        } else {
+                          const v = cellMap.get(`${row.id}:${p.id}`);
+                          if (v !== undefined) rowValues.set(p.id, v);
+                        }
+                      }
 
-                      return (
-                        <td
-                          key={prop.id}
-                          className="h-[33px] border-r border-[var(--border-default)]"
-                          style={{
-                            width: `${width}px`,
-                            minWidth: `${width}px`,
-                            position: isTitle ? "sticky" : undefined,
-                            left: isTitle ? 28 : undefined,
-                            zIndex: isTitle ? 1 : undefined,
-                            backgroundColor: "var(--bg-primary)",
-                          }}
-                        >
-                          <PropertyEditor
-                            type={prop.type as PropertyType}
-                            value={cellValue}
-                            onChange={(v) =>
-                              handleCellChange(row.id, prop.id, v)
-                            }
-                            config={prop.config as Record<string, unknown>}
-                            onConfigChange={(c) =>
-                              handleConfigChange(prop.id, c)
-                            }
-                            pageId={row.id}
-                            workspaceId={workspaceId}
-                          />
-                        </td>
-                      );
-                    })}
+                      return visibleProperties.map((prop) => {
+                        const isTitle = prop.type === "title";
+                        const cellKey = `${row.id}:${prop.id}`;
+                        const cellValue = isTitle
+                          ? row.title
+                          : (cellMap.get(cellKey) ?? null);
+                        const width =
+                          columnWidths[prop.id] ?? prop.width ?? 200;
+
+                        return (
+                          <td
+                            key={prop.id}
+                            className="h-[33px] border-r border-[var(--border-default)]"
+                            style={{
+                              width: `${width}px`,
+                              minWidth: `${width}px`,
+                              position: isTitle ? "sticky" : undefined,
+                              left: isTitle ? 28 : undefined,
+                              zIndex: isTitle ? 1 : undefined,
+                              backgroundColor: "var(--bg-primary)",
+                            }}
+                          >
+                            <PropertyEditor
+                              type={prop.type as PropertyType}
+                              value={cellValue}
+                              onChange={(v) =>
+                                handleCellChange(row.id, prop.id, v)
+                              }
+                              config={prop.config as Record<string, unknown>}
+                              onConfigChange={(c) =>
+                                handleConfigChange(prop.id, c)
+                              }
+                              pageId={row.id}
+                              workspaceId={workspaceId}
+                              cellMap={cellMap}
+                              rowValues={rowValues}
+                              propertyNameMap={propertyNameMap}
+                            />
+                          </td>
+                        );
+                      });
+                    })()}
                     <td className="h-[33px] w-[44px]" />
                   </SortableRow>
                 ))}

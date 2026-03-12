@@ -12,3 +12,6 @@ export { URLCell } from "./URLCell";
 export { EmailCell } from "./EmailCell";
 export { PhoneCell } from "./PhoneCell";
 export { FilesCell } from "./FilesCell";
+export { RelationCell } from "./RelationCell";
+export { RollupCell } from "./RollupCell";
+export { FormulaCell } from "./FormulaCell";

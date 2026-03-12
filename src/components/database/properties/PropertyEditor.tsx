@@ -14,6 +14,9 @@ import { URLCell } from "./URLCell";
 import { EmailCell } from "./EmailCell";
 import { PhoneCell } from "./PhoneCell";
 import { FilesCell } from "./FilesCell";
+import { RelationCell } from "./RelationCell";
+import { RollupCell } from "./RollupCell";
+import { FormulaCell } from "./FormulaCell";
 
 interface PropertyEditorProps {
   type: PropertyType;
@@ -24,6 +27,12 @@ interface PropertyEditorProps {
   pageId?: string;
   isInline?: boolean;
   workspaceId?: string;
+  /** For rollup: all cell values keyed as "pageId:propertyId" */
+  cellMap?: Map<string, CellValue>;
+  /** For formula: current row's cell values keyed by propertyId */
+  rowValues?: Map<string, CellValue>;
+  /** For formula: property name → id mapping */
+  propertyNameMap?: Map<string, string>;
 }
 
 export function PropertyEditor({
@@ -35,6 +44,9 @@ export function PropertyEditor({
   pageId,
   isInline = true,
   workspaceId,
+  cellMap,
+  rowValues,
+  propertyNameMap,
 }: PropertyEditorProps) {
   switch (type) {
     case "title":
@@ -135,6 +147,32 @@ export function PropertyEditor({
         <FilesCell
           value={(value as FileItem[]) ?? []}
           onChange={(v) => onChange(v)}
+        />
+      );
+    case "relation":
+      return (
+        <RelationCell
+          value={(value as string[]) ?? []}
+          onChange={(v) => onChange(v)}
+          config={config}
+        />
+      );
+    case "rollup":
+      return (
+        <RollupCell
+          value={value}
+          config={config}
+          cellMap={cellMap}
+          pageId={pageId}
+        />
+      );
+    case "formula":
+      return (
+        <FormulaCell
+          value={value}
+          config={config}
+          rowValues={rowValues}
+          propertyNameMap={propertyNameMap}
         />
       );
     // Read-only computed types

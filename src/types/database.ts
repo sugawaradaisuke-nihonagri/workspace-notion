@@ -81,7 +81,41 @@ export interface DateConfig {
 
 export interface RelationConfig {
   databaseId: string;
-  isSynced: boolean;
+}
+
+export interface RollupConfig {
+  relationPropertyId: string;
+  targetPropertyId: string;
+  aggregation: RollupAggregation;
+}
+
+export type RollupAggregation =
+  | "show_original"
+  | "count"
+  | "count_values"
+  | "count_unique"
+  | "sum"
+  | "average"
+  | "min"
+  | "max"
+  | "percent_empty"
+  | "percent_not_empty";
+
+export const ROLLUP_AGGREGATION_LABELS: Record<RollupAggregation, string> = {
+  show_original: "元の値を表示",
+  count: "カウント",
+  count_values: "値のカウント",
+  count_unique: "ユニーク数",
+  sum: "合計",
+  average: "平均",
+  min: "最小",
+  max: "最大",
+  percent_empty: "空欄 %",
+  percent_not_empty: "入力済み %",
+};
+
+export interface FormulaConfig {
+  expression: string;
 }
 
 export type PropertyConfig =
@@ -91,6 +125,8 @@ export type PropertyConfig =
   | NumberConfig
   | DateConfig
   | RelationConfig
+  | RollupConfig
+  | FormulaConfig
   | Record<string, unknown>;
 
 // --- File item for files cell ---
