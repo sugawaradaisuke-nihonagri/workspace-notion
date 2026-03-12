@@ -1,61 +1,21 @@
 import { z } from "zod";
-import { eq, and, asc, isNull, desc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../init";
-import { comments, pages, workspaceMembers, users } from "@/lib/db/schema";
-
-/** ページの所属ワークスペースメンバーシップを確認 */
-async function verifyPageAccess(
-  db: ReturnType<typeof import("@/lib/db").getDb>,
-  pageId: string,
-  userId: string,
-) {
-  const page = await db
-    .select({ workspaceId: pages.workspaceId })
-    .from(pages)
-    .where(eq(pages.id, pageId))
-    .then((rows: { workspaceId: string }[]) => rows[0]);
-
-  if (!page) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
-  }
-
-  const member = await db
-    .select()
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, page.workspaceId),
-        eq(workspaceMembers.userId, userId),
-      ),
-    )
-    .then(
-      (
-        rows: {
-          id: string;
-          workspaceId: string;
-          userId: string;
-          role: string;
-        }[],
-      ) => rows[0],
-    );
-
-  if (!member) {
-    throw new TRPCError({ code: "FORBIDDEN" });
-  }
-
-  return page;
-}
+import { comments, users } from "@/lib/db/schema";
+import { requirePageRole } from "../verify-access";
+import type { Database } from "@/lib/db";
 
 export const commentsRouter = router({
   /** List comments for a page (top-level + nested replies) */
   list: protectedProcedure
     .input(z.object({ pageId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      await verifyPageAccess(
-        ctx.db as ReturnType<typeof import("@/lib/db").getDb>,
+      await requirePageRole(
+        ctx.db as Database,
         input.pageId,
         ctx.user.id,
+        "viewer",
       );
 
       // Fetch all comments for this page with author info
@@ -107,10 +67,11 @@ export const commentsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await verifyPageAccess(
-        ctx.db as ReturnType<typeof import("@/lib/db").getDb>,
+      await requirePageRole(
+        ctx.db as Database,
         input.pageId,
         ctx.user.id,
+        "commenter",
       );
 
       // If replying, verify parent exists and belongs to same page
@@ -195,10 +156,11 @@ export const commentsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyPageAccess(
-        ctx.db as ReturnType<typeof import("@/lib/db").getDb>,
+      await requirePageRole(
+        ctx.db as Database,
         comment.pageId,
         ctx.user.id,
+        "commenter",
       );
 
       const [updated] = await ctx.db

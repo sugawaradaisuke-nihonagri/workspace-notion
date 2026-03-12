@@ -3,7 +3,9 @@ import { eq, and, asc, ilike, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { router, workspaceProcedure, protectedProcedure } from "../init";
-import { pages, blocks, workspaceMembers } from "@/lib/db/schema";
+import { pages, blocks } from "@/lib/db/schema";
+import { requirePageRole } from "../verify-access";
+import type { Database } from "@/lib/db";
 
 const pageTypeSchema = z.enum(["page", "database", "database_row"]);
 
@@ -27,6 +29,13 @@ export const pagesRouter = router({
   get: protectedProcedure
     .input(z.object({ pageId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "viewer",
+      );
+
       const page = await ctx.db
         .select()
         .from(pages)
@@ -35,22 +44,6 @@ export const pagesRouter = router({
 
       if (!page) {
         throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      // ワークスペース所属チェック
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, page.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then((rows) => rows[0]);
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       const pageBlocks = await ctx.db
@@ -121,31 +114,12 @@ export const pagesRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const page = await ctx.db
-        .select()
-        .from(pages)
-        .where(eq(pages.id, input.pageId))
-        .then((rows) => rows[0]);
-
-      if (!page) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      // 所属チェック
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, page.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then((rows) => rows[0]);
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       const { pageId, ...updates } = input;
       const setData: Record<string, unknown> = {
@@ -170,30 +144,12 @@ export const pagesRouter = router({
   delete: protectedProcedure
     .input(z.object({ pageId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const page = await ctx.db
-        .select()
-        .from(pages)
-        .where(eq(pages.id, input.pageId))
-        .then((rows) => rows[0]);
-
-      if (!page) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, page.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then((rows) => rows[0]);
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       const [deleted] = await ctx.db
         .update(pages)
@@ -211,30 +167,12 @@ export const pagesRouter = router({
   restore: protectedProcedure
     .input(z.object({ pageId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const page = await ctx.db
-        .select()
-        .from(pages)
-        .where(eq(pages.id, input.pageId))
-        .then((rows) => rows[0]);
-
-      if (!page) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, page.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then((rows) => rows[0]);
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       const [restored] = await ctx.db
         .update(pages)
@@ -259,6 +197,13 @@ export const pagesRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const access = await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
+
       const page = await ctx.db
         .select()
         .from(pages)
@@ -267,21 +212,6 @@ export const pagesRouter = router({
 
       if (!page) {
         throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, page.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then((rows) => rows[0]);
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       // 同じ親の兄弟を position 順で取得

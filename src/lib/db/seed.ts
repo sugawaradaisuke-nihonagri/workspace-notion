@@ -204,7 +204,7 @@ async function seed() {
     {
       workspaceId: ID.workspace,
       userId: ID.user3,
-      role: "member",
+      role: "editor",
     },
   ]);
 

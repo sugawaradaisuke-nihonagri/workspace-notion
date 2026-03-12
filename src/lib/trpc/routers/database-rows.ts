@@ -3,55 +3,9 @@ import { eq, and, asc, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { router, protectedProcedure } from "../init";
-import {
-  pages,
-  databaseProperties,
-  databaseCellValues,
-  workspaceMembers,
-} from "@/lib/db/schema";
-
-/** databaseId のページが存在し、ユーザーがアクセスできることを確認 */
-async function verifyDatabaseAccess(
-  db: ReturnType<typeof import("@/lib/db").getDb>,
-  databaseId: string,
-  userId: string,
-) {
-  const page = await db
-    .select({ workspaceId: pages.workspaceId, type: pages.type })
-    .from(pages)
-    .where(eq(pages.id, databaseId))
-    .then((rows: { workspaceId: string; type: string }[]) => rows[0]);
-
-  if (!page) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Database not found" });
-  }
-
-  const member = await db
-    .select()
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, page.workspaceId),
-        eq(workspaceMembers.userId, userId),
-      ),
-    )
-    .then(
-      (
-        rows: {
-          id: string;
-          workspaceId: string;
-          userId: string;
-          role: string;
-        }[],
-      ) => rows[0],
-    );
-
-  if (!member) {
-    throw new TRPCError({ code: "FORBIDDEN" });
-  }
-
-  return page;
-}
+import { pages, databaseProperties, databaseCellValues } from "@/lib/db/schema";
+import { requireDatabaseRole, requirePageRole } from "../verify-access";
+import type { Database } from "@/lib/db";
 
 export const databaseRowsRouter = router({
   /** データベース行の一覧取得 (フィルタ/ソートはクライアント側で適用) */
@@ -62,10 +16,11 @@ export const databaseRowsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const dbPage = await verifyDatabaseAccess(
-        ctx.db,
+      await requireDatabaseRole(
+        ctx.db as Database,
         input.databaseId,
         ctx.user.id,
+        "viewer",
       );
 
       // database_row ページを取得
@@ -110,10 +65,11 @@ export const databaseRowsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const dbPage = await verifyDatabaseAccess(
-        ctx.db,
+      await requireDatabaseRole(
+        ctx.db as Database,
         input.databaseId,
         ctx.user.id,
+        "editor",
       );
 
       // 既存の行の最後の position を取得
@@ -168,11 +124,18 @@ export const databaseRowsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // 行ページが存在し、database_row であることを確認
+      // 行ページのアクセス権を確認 (editor 以上)
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
+
+      // 行ページが database_row であることを確認
       const row = await ctx.db
         .select({
           databaseId: pages.databaseId,
-          workspaceId: pages.workspaceId,
           type: pages.type,
         })
         .from(pages)
@@ -181,7 +144,6 @@ export const databaseRowsRouter = router({
           (
             rows: {
               databaseId: string | null;
-              workspaceId: string;
               type: string;
             }[],
           ) => rows[0],
@@ -192,31 +154,6 @@ export const databaseRowsRouter = router({
           code: "BAD_REQUEST",
           message: "Page is not a database row",
         });
-      }
-
-      // ワークスペースメンバーシップチェック
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, row.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then(
-          (
-            rows: {
-              id: string;
-              workspaceId: string;
-              userId: string;
-              role: string;
-            }[],
-          ) => rows[0],
-        );
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       // 既存のセル値を確認 (upsert)
@@ -265,51 +202,12 @@ export const databaseRowsRouter = router({
   delete: protectedProcedure
     .input(z.object({ pageId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const row = await ctx.db
-        .select({
-          databaseId: pages.databaseId,
-          workspaceId: pages.workspaceId,
-          type: pages.type,
-        })
-        .from(pages)
-        .where(eq(pages.id, input.pageId))
-        .then(
-          (
-            rows: {
-              databaseId: string | null;
-              workspaceId: string;
-              type: string;
-            }[],
-          ) => rows[0],
-        );
-
-      if (!row) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const member = await ctx.db
-        .select()
-        .from(workspaceMembers)
-        .where(
-          and(
-            eq(workspaceMembers.workspaceId, row.workspaceId),
-            eq(workspaceMembers.userId, ctx.user.id),
-          ),
-        )
-        .then(
-          (
-            rows: {
-              id: string;
-              workspaceId: string;
-              userId: string;
-              role: string;
-            }[],
-          ) => rows[0],
-        );
-
-      if (!member) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       const [deleted] = await ctx.db
         .update(pages)
@@ -320,6 +218,10 @@ export const databaseRowsRouter = router({
         })
         .where(eq(pages.id, input.pageId))
         .returning();
+
+      if (!deleted) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
 
       return deleted;
     }),

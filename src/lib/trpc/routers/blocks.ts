@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { eq, and, asc, inArray } from "drizzle-orm";
+import { eq, asc, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { router, protectedProcedure } from "../init";
-import { blocks, pages, workspaceMembers } from "@/lib/db/schema";
+import { blocks, pages } from "@/lib/db/schema";
+import { requirePageRole } from "../verify-access";
+import type { Database } from "@/lib/db";
 
 const blockTypeSchema = z.enum([
   "paragraph",
@@ -31,60 +33,16 @@ const blockTypeSchema = z.enum([
   "child_database",
 ]);
 
-/** ページの所属ワークスペースメンバーシップを確認するヘルパー */
-async function verifyPageAccess(
-  db: Parameters<typeof protectedProcedure.query>[0] extends (
-    opts: infer O,
-  ) => unknown
-    ? O extends { ctx: { db: infer D } }
-      ? D
-      : never
-    : never,
-  pageId: string,
-  userId: string,
-) {
-  const page = await (db as ReturnType<typeof import("@/lib/db").getDb>)
-    .select({ workspaceId: pages.workspaceId })
-    .from(pages)
-    .where(eq(pages.id, pageId))
-    .then((rows: { workspaceId: string }[]) => rows[0]);
-
-  if (!page) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
-  }
-
-  const member = await (db as ReturnType<typeof import("@/lib/db").getDb>)
-    .select()
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, page.workspaceId),
-        eq(workspaceMembers.userId, userId),
-      ),
-    )
-    .then(
-      (
-        rows: {
-          id: string;
-          workspaceId: string;
-          userId: string;
-          role: string;
-        }[],
-      ) => rows[0],
-    );
-
-  if (!member) {
-    throw new TRPCError({ code: "FORBIDDEN" });
-  }
-
-  return page;
-}
-
 export const blocksRouter = router({
   list: protectedProcedure
     .input(z.object({ pageId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      await verifyPageAccess(ctx.db, input.pageId, ctx.user.id);
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "viewer",
+      );
 
       return ctx.db
         .select()
@@ -105,7 +63,12 @@ export const blocksRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await verifyPageAccess(ctx.db, input.pageId, ctx.user.id);
+      await requirePageRole(
+        ctx.db as Database,
+        input.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       // 兄弟ブロックを position 順で取得
       const siblings = await ctx.db
@@ -173,7 +136,12 @@ export const blocksRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyPageAccess(ctx.db, block.pageId, ctx.user.id);
+      await requirePageRole(
+        ctx.db as Database,
+        block.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       const setData: Record<string, unknown> = {
         updatedAt: new Date(),
@@ -210,7 +178,12 @@ export const blocksRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyPageAccess(ctx.db, block.pageId, ctx.user.id);
+      await requirePageRole(
+        ctx.db as Database,
+        block.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       await ctx.db.delete(blocks).where(eq(blocks.id, input.blockId));
 
@@ -240,7 +213,12 @@ export const blocksRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyPageAccess(ctx.db, block.pageId, ctx.user.id);
+      await requirePageRole(
+        ctx.db as Database,
+        block.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       const siblings = await ctx.db
         .select({ id: blocks.id, position: blocks.position })
@@ -287,7 +265,12 @@ export const blocksRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyPageAccess(ctx.db, firstBlock.pageId, ctx.user.id);
+      await requirePageRole(
+        ctx.db as Database,
+        firstBlock.pageId,
+        ctx.user.id,
+        "editor",
+      );
 
       await ctx.db.delete(blocks).where(inArray(blocks.id, input.blockIds));
 

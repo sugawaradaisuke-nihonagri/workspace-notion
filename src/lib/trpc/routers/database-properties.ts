@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { router, protectedProcedure } from "../init";
-import { databaseProperties, pages, workspaceMembers } from "@/lib/db/schema";
+import { databaseProperties } from "@/lib/db/schema";
+import { requireDatabaseRole } from "../verify-access";
+import type { Database } from "@/lib/db";
 
 const propertyTypeSchema = z.enum([
   "title",
@@ -30,60 +32,16 @@ const propertyTypeSchema = z.enum([
   "button",
 ]);
 
-/** databaseId のページが存在し、ユーザーがアクセスできることを確認 */
-async function verifyDatabaseAccess(
-  db: ReturnType<typeof import("@/lib/db").getDb>,
-  databaseId: string,
-  userId: string,
-) {
-  const page = await db
-    .select({ workspaceId: pages.workspaceId, type: pages.type })
-    .from(pages)
-    .where(eq(pages.id, databaseId))
-    .then((rows: { workspaceId: string; type: string }[]) => rows[0]);
-
-  if (!page) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Database not found" });
-  }
-  if (page.type !== "database") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Page is not a database",
-    });
-  }
-
-  const member = await db
-    .select()
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, page.workspaceId),
-        eq(workspaceMembers.userId, userId),
-      ),
-    )
-    .then(
-      (
-        rows: {
-          id: string;
-          workspaceId: string;
-          userId: string;
-          role: string;
-        }[],
-      ) => rows[0],
-    );
-
-  if (!member) {
-    throw new TRPCError({ code: "FORBIDDEN" });
-  }
-
-  return page;
-}
-
 export const databasePropertiesRouter = router({
   list: protectedProcedure
     .input(z.object({ databaseId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      await verifyDatabaseAccess(ctx.db, input.databaseId, ctx.user.id);
+      await requireDatabaseRole(
+        ctx.db as Database,
+        input.databaseId,
+        ctx.user.id,
+        "viewer",
+      );
 
       return ctx.db
         .select()
@@ -102,7 +60,12 @@ export const databasePropertiesRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await verifyDatabaseAccess(ctx.db, input.databaseId, ctx.user.id);
+      await requireDatabaseRole(
+        ctx.db as Database,
+        input.databaseId,
+        ctx.user.id,
+        "editor",
+      );
 
       // 最後の position を取得
       const siblings = await ctx.db
@@ -150,7 +113,12 @@ export const databasePropertiesRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyDatabaseAccess(ctx.db, property.databaseId, ctx.user.id);
+      await requireDatabaseRole(
+        ctx.db as Database,
+        property.databaseId,
+        ctx.user.id,
+        "editor",
+      );
 
       const setData: Record<string, unknown> = {};
       if (input.name !== undefined) setData.name = input.name;
@@ -191,7 +159,12 @@ export const databasePropertiesRouter = router({
         });
       }
 
-      await verifyDatabaseAccess(ctx.db, property.databaseId, ctx.user.id);
+      await requireDatabaseRole(
+        ctx.db as Database,
+        property.databaseId,
+        ctx.user.id,
+        "editor",
+      );
 
       await ctx.db
         .delete(databaseProperties)
@@ -218,7 +191,12 @@ export const databasePropertiesRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await verifyDatabaseAccess(ctx.db, property.databaseId, ctx.user.id);
+      await requireDatabaseRole(
+        ctx.db as Database,
+        property.databaseId,
+        ctx.user.id,
+        "editor",
+      );
 
       const siblings = await ctx.db
         .select({

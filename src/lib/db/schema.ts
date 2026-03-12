@@ -20,7 +20,13 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
 import type { AdapterAccountType } from "next-auth/adapters";
 
 // === Enums ===
-export const roleEnum = pgEnum("role", ["owner", "admin", "member", "guest"]);
+export const roleEnum = pgEnum("role", [
+  "owner",
+  "admin",
+  "editor",
+  "commenter",
+  "viewer",
+]);
 
 export const pageTypeEnum = pgEnum("page_type", [
   "page",
@@ -148,7 +154,7 @@ export const workspaceMembers = pgTable("workspace_members", {
   userId: uuid("user_id")
     .references(() => users.id)
     .notNull(),
-  role: roleEnum("role").default("member").notNull(),
+  role: roleEnum("role").default("editor").notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
 });
 
