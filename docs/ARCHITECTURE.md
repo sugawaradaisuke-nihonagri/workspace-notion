@@ -23,7 +23,10 @@
 │  │  tRPC v11 (fetchRequestHandler)              │ │
 │  │  ├── workspace router                        │ │
 │  │  ├── pages router                            │ │
-│  │  └── blocks router                           │ │
+│  │  ├── blocks router                           │ │
+│  │  ├── dbProperties router                     │ │
+│  │  ├── dbRows router                           │ │
+│  │  └── dbViews router                          │ │
 │  └───────────────────┼──────────────────────────┘ │
 │                      │                            │
 │  ┌─────────────┐  ┌──┴───────────┐  ┌──────────┐ │
@@ -53,6 +56,7 @@
 | @dnd-kit | 6.x/10.x | ドラッグ&ドロップ |
 | Framer Motion | 12.x | アニメーション |
 | Lucide React | 0.577 | アイコン |
+| emoji-mart | 1.x | 絵文字ピッカー (lazy loaded) |
 
 ### バックエンド
 | 技術 | バージョン | 用途 |
@@ -76,7 +80,9 @@ src/
 ├── app/                           # Next.js App Router
 │   ├── (auth)/login/              # ログインページ
 │   ├── (workspace)/[workspaceId]/ # ワークスペースレイアウト
-│   │   ├── [pageId]/             # ページエディタ
+│   │   ├── [pageId]/             # ページエディタ / データベースビュー
+│   │   │   ├── page.tsx          # Server: params 展開
+│   │   │   └── page-editor-view.tsx # Client: Editor or DatabaseView ルーティング
 │   │   ├── layout.tsx            # Server: DB検証 + サイドバーレイアウト
 │   │   └── workspace-layout.tsx  # Client: Sidebar + main
 │   ├── api/
@@ -88,23 +94,42 @@ src/
 │   ├── sidebar/                  # サイドバー (8コンポーネント)
 │   ├── editor/                   # Tiptap ブロックエディタ
 │   │   ├── Editor.tsx            # メイン: EditorProvider + 自動保存
+│   │   ├── PageHeader.tsx        # カバー画像 + 絵文字 + タイトル
 │   │   ├── BlockDragHandle.tsx   # ⋮⋮ ドラッグ + ⊕ + マルチ選択
-│   │   ├── extensions/           # Tiptap Extensions (13個)
+│   │   ├── extensions/           # Tiptap Extensions (14個)
 │   │   │   ├── index.ts          # Extensions バンドル
 │   │   │   ├── callout-extension.ts
 │   │   │   ├── toggle-extension.ts
 │   │   │   ├── divider-extension.ts
 │   │   │   ├── slash-command.ts   # Suggestion API
-│   │   │   └── block-color.ts    # グローバル blockColor 属性
+│   │   │   ├── block-color.ts    # グローバル blockColor 属性
+│   │   │   └── keyboard-shortcuts.ts # ⌘D, ⌘⇧↑↓, Tab
 │   │   ├── blocks/               # カスタム NodeView
 │   │   │   ├── callout-view.tsx
 │   │   │   └── toggle-view.tsx
 │   │   └── menus/                # メニュー UI
 │   │       ├── SlashMenu.tsx     # スラッシュコマンド (16種)
 │   │       └── BlockContextMenu.tsx # 右クリックメニュー
-│   ├── database/                 # DB ビュー (Phase 2)
+│   ├── database/                 # データベースビュー
+│   │   ├── DatabaseView.tsx      # メイン: ビュータブ + コントロール + ビュー
+│   │   ├── properties/           # セルエディタ (13タイプ)
+│   │   │   ├── PropertyEditor.tsx # ディスパッチャー
+│   │   │   ├── TitleCell.tsx, TextCell.tsx, NumberCell.tsx
+│   │   │   ├── CheckboxCell.tsx, SelectCell.tsx, MultiSelectCell.tsx
+│   │   │   ├── StatusCell.tsx, DateCell.tsx, PersonCell.tsx
+│   │   │   ├── URLCell.tsx, EmailCell.tsx, PhoneCell.tsx
+│   │   │   └── FilesCell.tsx
+│   │   ├── views/                # ビューコンポーネント
+│   │   │   ├── TableView.tsx     # テーブルビュー (メイン)
+│   │   │   ├── ColumnHeaderMenu.tsx # 列ヘッダーメニュー
+│   │   │   └── TableFooter.tsx   # 集計フッター
+│   │   └── controls/             # フィルタ/ソート/グループ
+│   │       ├── FilterBar.tsx
+│   │       ├── SortBar.tsx
+│   │       └── GroupBar.tsx
 │   ├── shared/                   # 共有コンポーネント
-│   │   └── search-modal.tsx      # ⌘K 検索モーダル
+│   │   ├── search-modal.tsx      # ⌘K 検索モーダル
+│   │   └── Topbar.tsx            # パンくず + アクション
 │   └── ui/                       # 汎用 UI
 ├── lib/
 │   ├── auth/                     # Auth.js 設定 (遅延adapter)
@@ -114,12 +139,22 @@ src/
 │   └── trpc/
 │       ├── init.ts              # tRPC context + procedures
 │       ├── client.ts            # createTRPCReact
-│       └── routers/             # workspace, pages, blocks
+│       └── routers/
+│           ├── index.ts         # appRouter 統合
+│           ├── workspace.ts
+│           ├── pages.ts
+│           ├── blocks.ts
+│           ├── database-properties.ts  # プロパティ CRUD
+│           ├── database-rows.ts        # 行 CRUD + セル upsert
+│           └── database-views.ts       # ビュー CRUD
 ├── stores/                       # Zustand ストア
 │   ├── sidebar-store.ts          # サイドバー開閉
 │   └── search-store.ts           # 検索モーダル開閉
 ├── hooks/                        # カスタム Hooks
-├── types/                        # 型定義
+├── types/
+│   ├── database.ts              # DB プロパティ型、セル値型、フィルタ/ソート型
+│   ├── index.ts
+│   └── next-auth.d.ts
 └── middleware.ts                  # 認証チェック
 ```
 
@@ -136,9 +171,9 @@ src/
 | `workspace_members` | WS メンバーシップ + ロール |
 | `pages` | ページ (page/database/database_row) |
 | `blocks` | ブロック (23タイプ) |
-| `database_properties` | DB プロパティ定義 |
-| `database_cell_values` | DB セル値 (JSONB) |
-| `database_views` | DB ビュー設定 |
+| `database_properties` | DB プロパティ定義 (22タイプ) |
+| `database_cell_values` | DB セル値 (JSONB, EAV パターン) |
+| `database_views` | DB ビュー設定 (7レイアウト) |
 | `comments` | コメント + インラインコメント |
 | `page_versions` | ページバージョン履歴 |
 
@@ -147,7 +182,16 @@ src/
 - **Fractional Indexing**: `position` カラム (text) で並び順管理。INSERT 時に他行の更新不要
 - **Soft Delete**: pages の `isDeleted` + `deletedAt` でゴミ箱機能
 - **Self Reference**: pages.parentId で無限ネスト
-- **JSONB**: blocks.content (Tiptap JSON), blocks.props, db_properties.config
+- **EAV パターン**: database_properties (列定義) + database_cell_values (セル値) で動的カラム
+- **JSONB**: blocks.content (Tiptap JSON), blocks.props, db_properties.config, db_cell_values.value
+
+### データベース行モデル
+
+```
+pages (type: "database")        ← データベース本体
+  └── pages (type: "database_row", databaseId: parent.id)  ← 各行
+        └── database_cell_values (pageId: row.id, propertyId: prop.id)  ← セル値
+```
 
 ## データフロー
 
@@ -160,10 +204,19 @@ Browser → /login → signIn("github") → GitHub OAuth
 ### ページ操作フロー
 ```
 Client → trpc.pages.create.mutate()
+→ onMutate: optimistic update (cache.setData)
 → tRPC server → protectedProcedure (session チェック)
 → workspaceProcedure (メンバーシップチェック)
 → Drizzle → Neon PostgreSQL
-→ 結果 → React Query キャッシュ更新 → UI 再描画
+→ onSettled: invalidate → refetch → UI 同期
+```
+
+### データベースセル更新フロー
+```
+Client → PropertyEditor onChange
+→ trpc.dbRows.updateCell.mutate({ pageId, propertyId, value })
+→ Server: upsert (既存なら update、なければ insert)
+→ onSettled: invalidate dbRows.list → テーブル再描画
 ```
 
 ## セキュリティ
@@ -173,3 +226,4 @@ Client → trpc.pages.create.mutate()
 - **入力検証**: Zod で全 tRPC エンドポイントにバリデーション
 - **XSS**: Tiptap サニタイズ (Phase 1 で DOMPurify 追加予定)
 - **CSRF**: Auth.js ビルトイン保護
+- **DB 保護**: title プロパティ削除不可、最後のビュー削除不可

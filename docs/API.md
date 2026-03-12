@@ -116,7 +116,7 @@ protectedProcedure.mutation
 
 **入力**: `{ pageId, title?, icon?, coverUrl?, parentId?, position? }`
 
-### pages.delete
+### pages.delete / pages.restore
 
 ```
 protectedProcedure.mutation
@@ -124,17 +124,7 @@ protectedProcedure.mutation
 
 **入力**: `{ pageId: uuid }`
 
-**処理**: Soft delete (`isDeleted = true`, `deletedAt = now()`)
-
-### pages.restore
-
-```
-protectedProcedure.mutation
-```
-
-**入力**: `{ pageId: uuid }`
-
-**処理**: `isDeleted = false`, `deletedAt = null`
+**処理**: Soft delete (`isDeleted = true/false`)
 
 ### pages.reorder
 
@@ -149,8 +139,6 @@ protectedProcedure.mutation
 | afterPageId | uuid \| null | この後に配置 (null = 先頭) |
 | parentId | uuid \| null | 新しい親 |
 
-**処理**: fractional-indexing で新しい position を計算
-
 ### pages.search
 
 ```
@@ -159,7 +147,7 @@ workspaceProcedure.query
 
 **入力**: `{ workspaceId: uuid, query: string (1-200) }`
 
-**レスポンス**: `{ id, title, icon, parentId, type, updatedAt }[]` — ILIKE 部分一致、最大20件
+**レスポンス**: ILIKE 部分一致、最大20件
 
 ---
 
@@ -168,12 +156,8 @@ workspaceProcedure.query
 ### blocks.list
 
 ```
-protectedProcedure.query
+protectedProcedure.query — 入力: { pageId: uuid }
 ```
-
-**入力**: `{ pageId: uuid }`
-
-**レスポンス**: `Block[]` — position 順
 
 ### blocks.create
 
@@ -194,36 +178,176 @@ protectedProcedure.mutation
 ### blocks.update
 
 ```
-protectedProcedure.mutation
+protectedProcedure.mutation — 入力: { blockId, content?, props?, type? }
 ```
-
-**入力**: `{ blockId: uuid, content?, props?, type? }`
 
 ### blocks.delete
 
 ```
-protectedProcedure.mutation
+protectedProcedure.mutation — 入力: { blockId: uuid }
 ```
-
-**入力**: `{ blockId: uuid }`
 
 ### blocks.reorder
 
 ```
-protectedProcedure.mutation
+protectedProcedure.mutation — 入力: { blockId, afterBlockId: uuid | null }
 ```
-
-**入力**: `{ blockId: uuid, afterBlockId: uuid | null }`
 
 ### blocks.bulkDelete
 
 ```
+protectedProcedure.mutation — 入力: { blockIds: uuid[] } (1〜100件)
+```
+
+---
+
+## dbProperties ルーター
+
+### dbProperties.list
+
+```
+protectedProcedure.query — 入力: { databaseId: uuid }
+```
+
+**認可**: databaseId が database 型のページであること + メンバーシップ検証
+
+**レスポンス**: `DatabaseProperty[]` — position 順
+
+### dbProperties.create
+
+```
 protectedProcedure.mutation
 ```
 
-**入力**: `{ blockIds: uuid[] }` — 1〜100件
+**入力**:
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| databaseId | uuid | ✅ | |
+| name | string (1-200) | ✅ | プロパティ名 |
+| type | PropertyType (22種) | ✅ | title/text/number/select/... |
+| config | Record<string, unknown> | - | タイプ固有設定 (options等) |
+
+**処理**: fractional-indexing で末尾に追加
+
+### dbProperties.update
+
+```
+protectedProcedure.mutation
+```
+
+**入力**: `{ propertyId, name?, config?, width? (50-800), isVisible? }`
+
+### dbProperties.delete
+
+```
+protectedProcedure.mutation — 入力: { propertyId: uuid }
+```
+
+**制約**: title プロパティは削除不可 (BAD_REQUEST)
+
+### dbProperties.reorder
+
+```
+protectedProcedure.mutation — 入力: { propertyId, afterPropertyId: uuid | null }
+```
 
 ---
+
+## dbRows ルーター
+
+### dbRows.list
+
+```
+protectedProcedure.query — 入力: { databaseId: uuid }
+```
+
+**レスポンス**: `{ rows: Page[], cells: CellValue[], properties: Property[] }`
+
+全行・全セル・全プロパティを一括返却。クライアント側でフィルタ/ソート適用。
+
+### dbRows.create
+
+```
+protectedProcedure.mutation — 入力: { databaseId: uuid }
+```
+
+**処理**: `pages` に type: "database_row" を作成。databaseId/parentId をセット。
+
+### dbRows.updateCell
+
+```
+protectedProcedure.mutation
+```
+
+**入力**:
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| pageId | uuid | ✅ | 行ページID |
+| propertyId | uuid | ✅ | プロパティID |
+| value | unknown | ✅ | JSONB 値 |
+
+**処理**: Upsert (既存セルがあれば update、なければ insert)
+
+### dbRows.delete
+
+```
+protectedProcedure.mutation — 入力: { pageId: uuid }
+```
+
+**処理**: Soft delete
+
+---
+
+## dbViews ルーター
+
+### dbViews.list
+
+```
+protectedProcedure.query — 入力: { databaseId: uuid }
+```
+
+**レスポンス**: `DatabaseView[]` — position 順
+
+### dbViews.create
+
+```
+protectedProcedure.mutation
+```
+
+**入力**:
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| databaseId | uuid | ✅ | |
+| name | string (1-200) | ✅ | ビュー名 |
+| layout | ViewLayout | - | table/board/calendar/gallery/list/timeline/chart (デフォルト: table) |
+
+### dbViews.update
+
+```
+protectedProcedure.mutation
+```
+
+**入力**: `{ viewId, name?, layout?, filter?, sort?, groupBy?, visibleProperties?, isLocked? }`
+
+### dbViews.delete
+
+```
+protectedProcedure.mutation — 入力: { viewId: uuid }
+```
+
+**制約**: 最後のビューは削除不可 (BAD_REQUEST)
+
+---
+
+## プロパティタイプ一覧 (22種)
+
+```
+title, text, number, select, multi_select, status,
+date, person, files, checkbox, url, email, phone,
+relation, rollup, formula,
+created_time, created_by, last_edited_time, last_edited_by,
+unique_id, button
+```
 
 ## エラーレスポンス
 
@@ -232,9 +356,9 @@ protectedProcedure.mutation
 | UNAUTHORIZED | 未ログイン |
 | FORBIDDEN | ワークスペース非メンバー / 権限不足 |
 | NOT_FOUND | リソースが存在しない |
-| BAD_REQUEST | 入力バリデーションエラー |
+| BAD_REQUEST | 入力バリデーションエラー / title 削除不可 / 最後のビュー削除不可 |
 
-## ブロックタイプ一覧
+## ブロックタイプ一覧 (23種)
 
 ```
 paragraph, heading1, heading2, heading3,

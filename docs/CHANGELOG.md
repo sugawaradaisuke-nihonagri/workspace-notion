@@ -1,5 +1,99 @@
 # 開発履歴
 
+## [0.3.0] - 2026-03-12 — Phase 2: データベーステーブルビュー
+
+### 🗄️ tRPC ルーター (3つ追加)
+- `dbProperties` ルーター: list, create, update, delete, reorder
+  - databaseId がデータベース型ページであることを検証
+  - title プロパティは削除不可
+  - fractional-indexing で列順序管理
+- `dbRows` ルーター: list, create, updateCell, delete
+  - list: 全行+全セル+全プロパティを一括返却
+  - create: database_row 型ページを作成
+  - updateCell: upsert パターン (既存あれば update、なければ insert)
+  - delete: soft delete
+- `dbViews` ルーター: list, create, update, delete
+  - filter/sort/groupBy/visibleProperties を JSONB で保存
+  - 最後のビュー削除不可
+
+### 📝 プロパティエディタ (13セルタイプ)
+- `PropertyEditor.tsx`: type に応じたセルコンポーネント分岐
+- `TitleCell`: ページタイトル編集 (blur で保存)
+- `TextCell`: テキスト入力
+- `NumberCell`: 数値入力 (右寄せ、スピナー非表示)
+- `CheckboxCell`: チェックボックス (accent-blue)
+- `SelectCell`: タグ選択 (検索、新規作成、クリア、9色)
+- `MultiSelectCell`: 複数タグ選択 (選択/解除、×ボタン)
+- `StatusCell`: 3グループ (Not started / In progress / Done) + ドット表示
+- `DateCell`: 開始日/終了日/クリア (date input)
+- `PersonCell`: ワークスペースメンバー選択
+- `URLCell`: URL入力 + 外部リンクアイコン
+- `EmailCell`: メール入力 + mailto リンク
+- `PhoneCell`: 電話番号入力 + tel リンク
+- `FilesCell`: アップロードプレースホルダー (Phase 3 で S3 連携)
+
+### 📊 テーブルビュー
+- `TableView.tsx`: メインテーブルコンポーネント
+  - 列ヘッダー: プロパティ名 + ソートアイコン + リサイズハンドル
+  - セルのインライン編集 (クリックで PropertyEditor 表示)
+  - Title 列の sticky freeze (box-shadow 付き)
+  - 列リサイズ (mousedown→mousemove→mouseup + DB 幅保存)
+  - 新規行追加ボタン (最下部)
+  - 新規列追加ボタン (右端)
+  - クライアントサイド フィルタ/ソート (useMemo)
+- `ColumnHeaderMenu.tsx`: 列ヘッダーメニュー
+  - プロパティタイプ表示、リネーム、非表示、削除
+- `TableFooter.tsx`: 集計フッター
+  - count, count_values, sum, average, min, max, percent_empty, percent_not_empty
+  - プロパティごとに集計タイプ選択ドロップダウン
+
+### 🔍 フィルタ/ソート/グループ
+- `FilterBar.tsx`: フィルター条件追加UI
+  - プロパティ選択 + オペレーター (equals/contains/is_empty/is_not_empty) + 値入力
+  - 複数条件対応、条件バッジ表示
+- `SortBar.tsx`: ソート条件追加UI
+  - プロパティ選択 + 昇順/降順トグル
+  - 複数ソートキー対応
+- `GroupBar.tsx`: グループ化UI
+  - select/multi_select/status/person/checkbox/date のグループ化対応
+
+### 🔧 統合
+- `DatabaseView.tsx`: ビュータブ + コントロール + ビューコンテンツの統合コンポーネント
+- `page-editor-view.tsx`: `page.type === "database"` で Editor → DatabaseView に分岐
+- 共有型定義: `src/types/database.ts` (PropertyType, CellValue, FilterCondition, SortRule 等)
+- `globals.css`: テーブル/sticky/date input/select/active state スタイル追加
+
+---
+
+## [0.2.1] - 2026-03-12 — Phase 1 仕上げ
+
+### 📐 ページ装飾
+- `PageHeader.tsx`: カバー画像 (5種グラデーション + URL入力)
+- 絵文字ピッカー: `@emoji-mart/react` lazy loading
+- タイトル編集: contentEditable div + 500ms デバウンス → pages.update
+- メタ情報: 最終更新日時表示
+- Enter キーで Tiptap エディタにフォーカス移動
+
+### 🧭 Topbar
+- `Topbar.tsx`: パンくずリスト (parentId 走査)
+- 各パンくず要素はクリックで遷移 (最後のページ以外)
+- 右側: ユーザーアイコン (プレゼンスプレースホルダー)、共有ボタン、⋯メニュー
+
+### ⌨️ キーボードショートカット
+- `keyboard-shortcuts.ts`: Tiptap Extension
+- ⌘D (Ctrl+D): ブロック複製 (getJSON → insertContentAt)
+- ⌘⇧↑ / ⌘⇧↓: ブロック上下移動 (ProseMirror transaction)
+- Tab: コードブロック内で2スペース挿入、リストではネスト
+
+### ⚡ Optimistic Updates
+- `pages.update` (PageHeader): pages.get + pages.list キャッシュを即座更新
+- `pages.create` (Sidebar/PageTreeItem): 仮UUID プレースホルダー追加
+- `pages.reorder` (PageTree): 配列内要素移動
+- 全ての optimistic update に onError ロールバック付き
+- QueryClient デフォルト: staleTime 30s, mutation retry off
+
+---
+
 ## [0.2.0] - 2026-03-12 — Phase 1: コアエディタ (Week 1-3)
 
 ### ✏️ Tiptap ブロックエディタ (Week 1)
