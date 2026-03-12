@@ -581,3 +581,56 @@ em-emoji-picker {
   --rgb-input: 30, 30, 30;
   --rgb-color: 255, 255, 255;
 }
+
+/* ============================================
+   Database Table
+   ============================================ */
+
+.database-table-wrapper {
+  font-size: 13px;
+}
+
+.database-table-wrapper table {
+  border-top: 1px solid var(--border-default);
+}
+
+.database-table-wrapper th,
+.database-table-wrapper td {
+  vertical-align: middle;
+}
+
+.database-table-wrapper thead th {
+  font-size: 12px;
+  user-select: none;
+}
+
+.database-table-wrapper tbody tr:hover td {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Sticky title column shadow */
+.database-table-wrapper th[style*="sticky"],
+.database-table-wrapper td[style*="sticky"] {
+  box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.15);
+}
+
+/* Number input in table cells */
+.database-table-wrapper input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Date input in table cells */
+.database-table-wrapper input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Select elements in controls */
+.database-table-wrapper select,
+select[class*="bg-secondary"] {
+  color-scheme: dark;
+}
+
+/* Filter/Sort/Group active state */
+button[data-active] {
+  color: var(--accent-blue) !important;
+}

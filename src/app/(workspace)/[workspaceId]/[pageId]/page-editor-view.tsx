@@ -3,6 +3,7 @@
 import { Topbar } from "@/components/shared/Topbar";
 import { PageHeader } from "@/components/editor/PageHeader";
 import { Editor } from "@/components/editor";
+import { DatabaseView } from "@/components/database";
 import { trpc } from "@/lib/trpc/client";
 
 interface PageEditorViewProps {
@@ -32,7 +33,19 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
 
   if (!page) return null;
 
-  // TODO: Phase 2 — if page.type === "database", render DatabaseView instead
+  // Database view routing
+  if (page.type === "database") {
+    return (
+      <div className="flex h-full flex-col">
+        <Topbar workspaceId={workspaceId} pageId={pageId} />
+        <div className="flex-1 overflow-hidden">
+          <PageHeader pageId={pageId} workspaceId={workspaceId} />
+          <DatabaseView databaseId={pageId} workspaceId={workspaceId} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
       <Topbar workspaceId={workspaceId} pageId={pageId} />
