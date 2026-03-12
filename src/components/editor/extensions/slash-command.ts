@@ -247,6 +247,18 @@ export const SLASH_ITEMS: SlashCommandItem[] = [
   },
   // --- 高度 ---
   {
+    id: "mention",
+    label: "メンション",
+    description: "ユーザーやページにメンション",
+    icon: "@",
+    category: "advanced",
+    aliases: ["mention", "user", "person", "at"],
+    command: (editor, range) => {
+      // Delete the slash command range and insert @ to trigger mention suggestion
+      editor.chain().focus().deleteRange(range).insertContent("@").run();
+    },
+  },
+  {
     id: "table",
     label: "テーブル",
     description: "シンプルなテーブル",

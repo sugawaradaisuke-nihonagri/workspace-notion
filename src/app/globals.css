@@ -288,6 +288,24 @@ body {
   opacity: 0.8;
 }
 
+/* --- @Mention chip --- */
+.mention {
+  display: inline;
+  background: var(--accent-blue-muted, rgba(45, 136, 255, 0.15));
+  color: var(--accent-blue);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mention:hover {
+  background: var(--accent-blue-muted, rgba(45, 136, 255, 0.25));
+}
+
 /* --- Blockquote --- */
 .tiptap blockquote {
   border-left: 3px solid var(--border-strong);

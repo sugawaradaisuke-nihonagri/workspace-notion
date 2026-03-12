@@ -2,7 +2,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../init";
-import { workspaces, workspaceMembers } from "@/lib/db/schema";
+import { workspaces, workspaceMembers, users } from "@/lib/db/schema";
 
 export const workspaceRouter = router({
   create: protectedProcedure
@@ -94,5 +94,37 @@ export const workspaceRouter = router({
         .returning();
 
       return updated;
+    }),
+
+  /** List workspace members — used for @mentions */
+  members: protectedProcedure
+    .input(z.object({ workspaceId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      // 所属チェック
+      const self = await ctx.db
+        .select()
+        .from(workspaceMembers)
+        .where(eq(workspaceMembers.workspaceId, input.workspaceId))
+        .then((rows) => rows.find((r) => r.userId === ctx.user.id));
+
+      if (!self) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a member of this workspace",
+        });
+      }
+
+      const rows = await ctx.db
+        .select({
+          userId: workspaceMembers.userId,
+          role: workspaceMembers.role,
+          name: users.name,
+          image: users.image,
+        })
+        .from(workspaceMembers)
+        .innerJoin(users, eq(workspaceMembers.userId, users.id))
+        .where(eq(workspaceMembers.workspaceId, input.workspaceId));
+
+      return rows;
     }),
 });

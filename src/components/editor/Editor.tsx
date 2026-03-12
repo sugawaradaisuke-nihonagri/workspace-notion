@@ -5,12 +5,15 @@ import { EditorProvider, type JSONContent } from "@tiptap/react";
 import type { Editor as TiptapEditor } from "@tiptap/core";
 import { trpc } from "@/lib/trpc/client";
 import { useYjsProvider, CURSOR_COLORS } from "@/lib/realtime";
+import { useMentionItems } from "@/hooks/use-mention-items";
 import { getEditorExtensions } from "./extensions";
 import { BlockDragHandle } from "./BlockDragHandle";
 import { CollabPresenceBar } from "./CollabPresenceBar";
 
 interface EditorProps {
   pageId: string;
+  /** Workspace ID — used to fetch @mention candidates */
+  workspaceId?: string;
   /** Current user info — required for collaboration cursors */
   user?: { id: string; name: string };
 }
@@ -22,7 +25,7 @@ const defaultContent: JSONContent = {
   content: [{ type: "paragraph" }],
 };
 
-export function Editor({ pageId, user }: EditorProps) {
+export function Editor({ pageId, workspaceId, user }: EditorProps) {
   const [blockId, setBlockId] = useState<string | null>(null);
   const [initialContent, setInitialContent] = useState<JSONContent | null>(
     null,
@@ -51,6 +54,9 @@ export function Editor({ pageId, user }: EditorProps) {
     return { name: user.name, color: c.color, colorLight: c.light };
   }, [user]);
 
+  // @mention items fetcher
+  const getMentionItems = useMentionItems(workspaceId);
+
   // Build extensions — memoized per collaboration state
   const extensions = useMemo(
     () =>
@@ -58,10 +64,11 @@ export function Editor({ pageId, user }: EditorProps) {
         provider && cursorUser
           ? { ydoc, provider, user: cursorUser }
           : undefined,
+        { getMentionItems },
       ),
-    // Re-create only when provider connection changes
+    // Re-create only when provider connection changes or mention data updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [!!provider, ydoc],
+    [!!provider, ydoc, getMentionItems],
   );
 
   // --- データ取得 ---

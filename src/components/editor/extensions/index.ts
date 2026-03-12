@@ -22,6 +22,11 @@ import { MediaBlockExtension } from "./media-block-extension";
 import { SlashCommandExtension } from "./slash-command";
 import { BlockColorExtension } from "./block-color";
 import { KeyboardShortcutsExtension } from "./keyboard-shortcuts";
+import {
+  MentionExtension,
+  createMentionExtension,
+  type MentionItem,
+} from "./mention-extension";
 
 const lowlight = createLowlight(common);
 
@@ -31,7 +36,14 @@ interface CollabOptions {
   user: { name: string; color: string; colorLight: string };
 }
 
-export function getEditorExtensions(collab?: CollabOptions) {
+interface MentionOptions {
+  getMentionItems: (query: string) => MentionItem[] | Promise<MentionItem[]>;
+}
+
+export function getEditorExtensions(
+  collab?: CollabOptions,
+  mention?: MentionOptions,
+) {
   return [
     StarterKit.configure({
       heading: {
@@ -96,6 +108,11 @@ export function getEditorExtensions(collab?: CollabOptions) {
     BlockColorExtension,
     KeyboardShortcutsExtension,
 
+    // --- @Mention extension ---
+    mention?.getMentionItems
+      ? createMentionExtension(mention.getMentionItems)
+      : MentionExtension,
+
     // --- Collaboration extensions (only when provider is available) ---
     ...(collab
       ? [
@@ -120,4 +137,6 @@ export {
   SlashCommandExtension,
   BlockColorExtension,
   KeyboardShortcutsExtension,
+  MentionExtension,
+  createMentionExtension,
 };

@@ -91,7 +91,7 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <PageHeader pageId={pageId} workspaceId={workspaceId} />
-          <Editor pageId={pageId} user={collabUser} />
+          <Editor pageId={pageId} workspaceId={workspaceId} user={collabUser} />
         </div>
         {collabUser && (
           <CommentSidebar
