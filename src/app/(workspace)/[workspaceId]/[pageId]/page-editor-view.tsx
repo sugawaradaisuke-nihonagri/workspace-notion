@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Topbar } from "@/components/shared/Topbar";
 import { PageHeader } from "@/components/editor/PageHeader";
 import { Editor } from "@/components/editor";
 import { DatabasePage } from "@/components/database";
+import { CommentSidebar } from "@/components/comments";
 import { trpc } from "@/lib/trpc/client";
 
 interface PageEditorViewProps {
@@ -15,6 +17,7 @@ interface PageEditorViewProps {
 export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
   const { data: session } = useSession();
   const { data: page, isLoading } = trpc.pages.get.useQuery({ pageId });
+  const [showComments, setShowComments] = useState(false);
 
   const collabUser = session?.user
     ? {
@@ -22,6 +25,13 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
         name: session.user.name ?? "Anonymous",
       }
     : undefined;
+
+  // Fetch comment count for the badge
+  const { data: commentThreads } = trpc.comments.list.useQuery(
+    { pageId },
+    { enabled: !!collabUser },
+  );
+  const commentCount = commentThreads?.filter((t) => !t.isResolved).length ?? 0;
 
   if (isLoading) {
     return (
@@ -46,10 +56,25 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
   if (page.type === "database") {
     return (
       <div className="flex h-full flex-col">
-        <Topbar workspaceId={workspaceId} pageId={pageId} />
-        <div className="flex-1 overflow-hidden">
-          <PageHeader pageId={pageId} workspaceId={workspaceId} />
-          <DatabasePage databaseId={pageId} workspaceId={workspaceId} />
+        <Topbar
+          workspaceId={workspaceId}
+          pageId={pageId}
+          onToggleComments={() => setShowComments(!showComments)}
+          commentCount={commentCount}
+        />
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <PageHeader pageId={pageId} workspaceId={workspaceId} />
+            <DatabasePage databaseId={pageId} workspaceId={workspaceId} />
+          </div>
+          {collabUser && (
+            <CommentSidebar
+              pageId={pageId}
+              currentUserId={collabUser.id}
+              isOpen={showComments}
+              onClose={() => setShowComments(false)}
+            />
+          )}
         </div>
       </div>
     );
@@ -57,10 +82,25 @@ export function PageEditorView({ workspaceId, pageId }: PageEditorViewProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <Topbar workspaceId={workspaceId} pageId={pageId} />
-      <div className="flex-1 overflow-y-auto">
-        <PageHeader pageId={pageId} workspaceId={workspaceId} />
-        <Editor pageId={pageId} user={collabUser} />
+      <Topbar
+        workspaceId={workspaceId}
+        pageId={pageId}
+        onToggleComments={() => setShowComments(!showComments)}
+        commentCount={commentCount}
+      />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <PageHeader pageId={pageId} workspaceId={workspaceId} />
+          <Editor pageId={pageId} user={collabUser} />
+        </div>
+        {collabUser && (
+          <CommentSidebar
+            pageId={pageId}
+            currentUserId={collabUser.id}
+            isOpen={showComments}
+            onClose={() => setShowComments(false)}
+          />
+        )}
       </div>
     </div>
   );

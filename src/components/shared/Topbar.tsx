@@ -2,15 +2,28 @@
 
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, MoreHorizontal, Share2, Users } from "lucide-react";
+import {
+  ChevronRight,
+  MessageCircle,
+  MoreHorizontal,
+  Share2,
+  Users,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 
 interface TopbarProps {
   workspaceId: string;
   pageId: string;
+  onToggleComments?: () => void;
+  commentCount?: number;
 }
 
-export function Topbar({ workspaceId, pageId }: TopbarProps) {
+export function Topbar({
+  workspaceId,
+  pageId,
+  onToggleComments,
+  commentCount,
+}: TopbarProps) {
   const router = useRouter();
   const { data: allPages } = trpc.pages.list.useQuery({ workspaceId });
   const { data: page } = trpc.pages.get.useQuery({ pageId });
@@ -87,6 +100,22 @@ export function Topbar({ workspaceId, pageId }: TopbarProps) {
             <Users size={12} />
           </div>
         </div>
+
+        {/* Comment button */}
+        {onToggleComments && (
+          <button
+            onClick={onToggleComments}
+            className="relative flex h-[28px] items-center gap-1.5 rounded-[6px] px-2 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+          >
+            <MessageCircle size={13} />
+            <span>コメント</span>
+            {commentCount != null && commentCount > 0 && (
+              <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[var(--accent-blue)] px-0.5 text-[9px] font-bold text-white">
+                {commentCount}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Share button */}
         <button className="flex h-[28px] items-center gap-1.5 rounded-[6px] px-2 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]">

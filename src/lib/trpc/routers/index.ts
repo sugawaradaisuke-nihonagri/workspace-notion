@@ -5,6 +5,7 @@ import { blocksRouter } from "./blocks";
 import { databasePropertiesRouter } from "./database-properties";
 import { databaseRowsRouter } from "./database-rows";
 import { databaseViewsRouter } from "./database-views";
+import { commentsRouter } from "./comments";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -16,6 +17,7 @@ export const appRouter = router({
   dbProperties: databasePropertiesRouter,
   dbRows: databaseRowsRouter,
   dbViews: databaseViewsRouter,
+  comments: commentsRouter,
 });
 
 export type AppRouter = typeof appRouter;
