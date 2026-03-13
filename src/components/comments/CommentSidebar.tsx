@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 import { CommentThread } from "./CommentThread";
@@ -33,9 +33,15 @@ export function CommentSidebar({
     },
   });
 
-  const unresolvedCount = threads.filter((t) => !t.isResolved).length;
-  const resolvedThreads = threads.filter((t) => t.isResolved);
-  const unresolvedThreads = threads.filter((t) => !t.isResolved);
+  const { unresolvedThreads, resolvedThreads } = useMemo(() => {
+    const unresolved: typeof threads = [];
+    const resolved: typeof threads = [];
+    for (const t of threads) {
+      (t.isResolved ? resolved : unresolved).push(t);
+    }
+    return { unresolvedThreads: unresolved, resolvedThreads: resolved };
+  }, [threads]);
+  const unresolvedCount = unresolvedThreads.length;
 
   if (!isOpen) return null;
 

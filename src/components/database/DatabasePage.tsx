@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 import { ViewTabs } from "./ViewTabs";
 import { TableView } from "./views/TableView";
-import { BoardView } from "./views/BoardView";
-import { CalendarView } from "./views/CalendarView";
-import { GalleryView } from "./views/GalleryView";
 import { FilterBar, SortBar, GroupBar } from "./controls";
 import type { FilterCondition, SortRule } from "@/types/database";
+
+// 非デフォルトビューを遅延ロード（バンドルサイズ削減）
+const BoardView = dynamic(() =>
+  import("./views/BoardView").then((m) => ({ default: m.BoardView })),
+);
+const CalendarView = dynamic(() =>
+  import("./views/CalendarView").then((m) => ({ default: m.CalendarView })),
+);
+const GalleryView = dynamic(() =>
+  import("./views/GalleryView").then((m) => ({ default: m.GalleryView })),
+);
 
 interface DatabasePageProps {
   databaseId: string;

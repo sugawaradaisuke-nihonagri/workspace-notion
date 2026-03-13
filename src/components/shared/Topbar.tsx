@@ -15,6 +15,9 @@ import { useShareStore } from "@/stores/share-store";
 import { useNotificationStore } from "@/stores/notification-store";
 import { MoreMenu } from "./MoreMenu";
 
+const EMPTY_BREADCRUMBS: { id: string; title: string; icon: string | null }[] =
+  [];
+
 interface TopbarProps {
   workspaceId: string;
   pageId: string;
@@ -59,7 +62,7 @@ export function Topbar({
 
   // Build breadcrumb chain by walking parentId upward
   const breadcrumbs = useMemo(() => {
-    if (!allPages || !page) return [];
+    if (!allPages || !page) return EMPTY_BREADCRUMBS;
 
     const pageMap = new Map(allPages.map((p) => [p.id, p]));
     const chain: { id: string; title: string; icon: string | null }[] = [];

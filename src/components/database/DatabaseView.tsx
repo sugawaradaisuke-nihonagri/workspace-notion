@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import {
   Plus,
   LayoutGrid,
@@ -12,16 +13,26 @@ import {
   BarChart3,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
-import {
-  TableView,
-  BoardView,
-  CalendarView,
-  GalleryView,
-  TimelineView,
-  ChartView,
-} from "./views";
+import { TableView } from "./views/TableView";
 import { FilterBar, SortBar, GroupBar } from "./controls";
 import type { FilterCondition, SortRule, ViewLayout } from "@/types/database";
+
+// 非デフォルトビューを遅延ロード
+const BoardView = dynamic(() =>
+  import("./views/BoardView").then((m) => ({ default: m.BoardView })),
+);
+const CalendarView = dynamic(() =>
+  import("./views/CalendarView").then((m) => ({ default: m.CalendarView })),
+);
+const GalleryView = dynamic(() =>
+  import("./views/GalleryView").then((m) => ({ default: m.GalleryView })),
+);
+const TimelineView = dynamic(() =>
+  import("./views/TimelineView").then((m) => ({ default: m.TimelineView })),
+);
+const ChartView = dynamic(() =>
+  import("./views/ChartView").then((m) => ({ default: m.ChartView })),
+);
 
 interface DatabaseViewProps {
   databaseId: string;

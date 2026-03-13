@@ -17,27 +17,26 @@ export default async function Layout({ children, params }: LayoutProps) {
   const { workspaceId } = await params;
   const db = getDb();
 
-  // ワークスペース取得 + 所属チェック
-  const workspace = await db
-    .select()
-    .from(workspaces)
-    .where(eq(workspaces.id, workspaceId))
-    .then((rows) => rows[0]);
+  // ワークスペース取得 + 所属チェックを並列実行
+  const [workspace, member] = await Promise.all([
+    db
+      .select()
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .then((rows) => rows[0]),
+    db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.userId, session.user.id),
+        ),
+      )
+      .then((rows) => rows[0]),
+  ]);
 
-  if (!workspace) redirect("/");
-
-  const member = await db
-    .select()
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, session.user.id),
-      ),
-    )
-    .then((rows) => rows[0]);
-
-  if (!member) redirect("/");
+  if (!workspace || !member) redirect("/");
 
   return (
     <WorkspaceLayout
