@@ -80,43 +80,37 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
   });
 
   // --- Title editing ---
-  const titleRef = useRef<HTMLDivElement>(null);
+  const [title, setTitle] = useState("");
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleInitializedRef = useRef(false);
-  const isEditingRef = useRef(false);
 
-  // Set title in DOM only once when page data first arrives
+  // Set title once when page data first arrives
   useEffect(() => {
-    if (page && titleRef.current && !titleInitializedRef.current) {
-      titleRef.current.textContent =
-        page.title === "Untitled" ? "" : page.title;
+    if (page && !titleInitializedRef.current) {
+      setTitle(page.title === "Untitled" ? "" : page.title);
       titleInitializedRef.current = true;
     }
   }, [page]);
 
-  const handleTitleInput = useCallback(() => {
-    const text = titleRef.current?.textContent ?? "";
-    isEditingRef.current = true;
+  const handleTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const text = e.target.value;
+      setTitle(text);
 
-    if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
-    titleTimerRef.current = setTimeout(() => {
-      updatePage.mutate({ pageId, title: text || "Untitled" });
-      isEditingRef.current = false;
-    }, 500);
-  }, [pageId, updatePage]);
+      if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
+      titleTimerRef.current = setTimeout(() => {
+        updatePage.mutate({ pageId, title: text || "Untitled" });
+      }, 500);
+    },
+    [pageId, updatePage],
+  );
 
   const handleTitleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      // Focus the editor below
       const editor = document.querySelector(".tiptap") as HTMLElement | null;
       editor?.focus();
     }
-  }, []);
-
-  // Stop IME / input events from bubbling to Tiptap (ProseMirror)
-  const stopPropagation = useCallback((e: React.SyntheticEvent) => {
-    e.stopPropagation();
   }, []);
 
   // --- Icon picker ---
@@ -253,19 +247,13 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
         </div>
 
         {/* Title */}
-        <div
-          ref={titleRef}
-          contentEditable
-          suppressContentEditableWarning
-          dir="ltr"
-          onInput={handleTitleInput}
+        <input
+          type="text"
+          value={title}
+          onChange={handleTitleChange}
           onKeyDown={handleTitleKeyDown}
-          onBeforeInput={stopPropagation}
-          onCompositionStart={stopPropagation}
-          onCompositionUpdate={stopPropagation}
-          onCompositionEnd={stopPropagation}
-          data-placeholder="Untitled"
-          className="page-title mt-1 mb-1 text-[38px] font-bold leading-[1.2] tracking-[-0.8px] text-[var(--text-primary)] outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--text-tertiary)]"
+          placeholder="Untitled"
+          className="page-title mt-1 mb-1 w-full border-none bg-transparent text-[38px] font-bold leading-[1.2] tracking-[-0.8px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
         />
 
         {/* Meta info */}
