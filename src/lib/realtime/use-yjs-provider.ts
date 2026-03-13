@@ -5,7 +5,7 @@ import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { CURSOR_COLORS } from "./cursor-colors";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:4444";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "";
 
 interface UseYjsProviderOptions {
   /** Unique room name — typically "page:{pageId}" */
@@ -47,7 +47,7 @@ export function useYjsProvider({
   }, [roomName]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !WS_URL) return;
 
     const wsProvider = new WebsocketProvider(WS_URL, roomName, ydoc, {
       connect: true,
