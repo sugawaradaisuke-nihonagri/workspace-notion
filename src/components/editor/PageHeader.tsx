@@ -114,6 +114,11 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
     }
   }, []);
 
+  // Stop IME / input events from bubbling to Tiptap (ProseMirror)
+  const stopPropagation = useCallback((e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  }, []);
+
   // --- Icon picker ---
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -255,6 +260,10 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
           dir="ltr"
           onInput={handleTitleInput}
           onKeyDown={handleTitleKeyDown}
+          onBeforeInput={stopPropagation}
+          onCompositionStart={stopPropagation}
+          onCompositionUpdate={stopPropagation}
+          onCompositionEnd={stopPropagation}
           data-placeholder="Untitled"
           className="page-title mt-1 mb-1 text-[38px] font-bold leading-[1.2] tracking-[-0.8px] text-[var(--text-primary)] outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--text-tertiary)]"
         />
