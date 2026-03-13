@@ -80,21 +80,28 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
   });
 
   // --- Title editing ---
-  const [title, setTitle] = useState("");
   const titleRef = useRef<HTMLDivElement>(null);
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleInitializedRef = useRef(false);
+  const isEditingRef = useRef(false);
 
+  // Set title in DOM only once when page data first arrives
   useEffect(() => {
-    if (page) setTitle(page.title);
+    if (page && titleRef.current && !titleInitializedRef.current) {
+      titleRef.current.textContent =
+        page.title === "Untitled" ? "" : page.title;
+      titleInitializedRef.current = true;
+    }
   }, [page]);
 
   const handleTitleInput = useCallback(() => {
     const text = titleRef.current?.textContent ?? "";
-    setTitle(text);
+    isEditingRef.current = true;
 
     if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
     titleTimerRef.current = setTimeout(() => {
       updatePage.mutate({ pageId, title: text || "Untitled" });
+      isEditingRef.current = false;
     }, 500);
   }, [pageId, updatePage]);
 
@@ -250,9 +257,7 @@ export function PageHeader({ pageId, workspaceId }: PageHeaderProps) {
           onKeyDown={handleTitleKeyDown}
           data-placeholder="Untitled"
           className="page-title mt-1 mb-1 text-[38px] font-bold leading-[1.2] tracking-[-0.8px] text-[var(--text-primary)] outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--text-tertiary)]"
-        >
-          {title}
-        </div>
+        />
 
         {/* Meta info */}
         <div className="mb-4 flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
