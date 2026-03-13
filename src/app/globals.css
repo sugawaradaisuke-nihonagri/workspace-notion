@@ -542,8 +542,9 @@ body {
   transition: opacity var(--transition-fast);
 }
 
-/* Show handles when editor wrapper is hovered */
-.editor-wrapper:hover .block-handle-group {
+/* Show handles when editor wrapper or handle layer is hovered */
+.editor-wrapper:hover .block-handle-group,
+.block-handle-layer:hover .block-handle-group {
   opacity: 0.6;
 }
 

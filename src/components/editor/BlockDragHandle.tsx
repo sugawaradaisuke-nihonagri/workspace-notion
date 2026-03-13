@@ -100,6 +100,12 @@ export function BlockDragHandle() {
     (e: MouseEvent) => {
       if (!editor || isDragging) return;
 
+      // Cancel any pending hide when mouse is back in editor
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+
       const editorDom = editor.view.dom;
       const wrapperEl = wrapperRef.current;
       if (!wrapperEl) return;
@@ -120,6 +126,8 @@ export function BlockDragHandle() {
     [editor, isDragging],
   );
 
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!editor) return;
     const editorDom = editor.view.dom;
@@ -132,18 +140,30 @@ export function BlockDragHandle() {
       if (relatedTarget && wrapperRef.current?.contains(relatedTarget)) {
         return;
       }
-      setHoveredBlock(null);
-      setHandlePos(null);
+      // Delay hiding so user can reach the handle buttons
+      hideTimerRef.current = setTimeout(() => {
+        setHoveredBlock(null);
+        setHandlePos(null);
+      }, 150);
     };
     editorDom.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
       editorDom.removeEventListener("mousemove", handleMouseMove);
       editorDom.removeEventListener("mouseleave", handleMouseLeave);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
   }, [editor, handleMouseMove, isDragging]);
 
-  // Clear handles when mouse leaves the handle layer entirely
+  // Cancel hide timer when mouse enters handle buttons
+  const handleGroupEnter = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  // Clear handles when mouse leaves the handle group entirely
   const handleLayerLeave = useCallback(
     (e: React.MouseEvent) => {
       if (isDragging) return;
@@ -319,6 +339,7 @@ export function BlockDragHandle() {
         <div
           className="block-handle-group"
           style={{ top: handlePos.top }}
+          onMouseEnter={handleGroupEnter}
           onMouseLeave={handleLayerLeave}
         >
           {/* + button */}
