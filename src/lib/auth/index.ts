@@ -15,7 +15,7 @@ function getAdapter() {
 
 export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
   adapter: getAdapter(),
-  providers: [GitHub, Google],
+  providers: [GitHub, ...(process.env.AUTH_GOOGLE_ID ? [Google] : [])],
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
